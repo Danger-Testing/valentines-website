@@ -841,16 +841,16 @@ function Home() {
 
       {/* Header */}
       <a href="/" className="fixed top-6 left-6 z-40 cursor-pointer flex items-center gap-2">
-        <span className="text-2xl md:text-3xl font-medium" style={{ fontFamily: 'Helvetica, Arial, sans-serif', color: '#C2021B' }}>
-          link bouquet
-        </span>
         <Image
           src="/link.png"
           alt=""
           width={100}
           height={100}
-          className="w-12 h-12 md:w-14 md:h-14 object-contain"
+          className="w-16 h-16 md:w-20 md:h-20 object-contain"
         />
+        <span className="text-2xl md:text-3xl font-medium" style={{ fontFamily: 'Helvetica, Arial, sans-serif', color: '#C2021B' }}>
+          link bouquet
+        </span>
       </a>
 
       {/* Turtle top right */}
