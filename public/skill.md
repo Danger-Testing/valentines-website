@@ -74,8 +74,8 @@ Array of media items. Each item:
 | id | string | Unique ID (just use "1", "2", "3", etc.) |
 | type | string | youtube, spotify, letterboxd, substack, twitter, instagram |
 | mediaId | string | The media identifier (see below) |
-| x | number | Position 0-100 (left to right) |
-| y | number | Position 0-100 (top to bottom) |
+| x | number | Position 20-80 (left to right, stay on flower) |
+| y | number | Position 25-75 (top to bottom, stay on flower) |
 | rotation | number | Rotation in degrees (-30 to 30) |
 | scale | number | Size 0.3 to 3.0 (default 0.8) |
 
@@ -127,18 +127,20 @@ Background color as hex:
 
 ## Recommended Positions
 
-For a balanced layout, use these (x, y) positions:
+For a balanced layout overlapping the flower, use these (x, y) positions:
 
 ```
-Top left:     (15, 25)
-Top right:    (85, 25)
-Middle left:  (10, 55)
-Middle right: (90, 55)
-Bottom left:  (20, 80)
-Bottom right: (80, 80)
-Top center:   (50, 15)
-Bottom center:(50, 85)
+Top left:     (25, 30)
+Top right:    (75, 30)
+Middle left:  (20, 50)
+Middle right: (80, 50)
+Bottom left:  (30, 70)
+Bottom right: (70, 70)
+Top center:   (50, 25)
+Bottom center:(50, 75)
 ```
+
+Keep x between 20-80 and y between 25-75 to stay on the flower.
 
 ---
 
@@ -156,8 +158,8 @@ User wants: a YouTube video, a Spotify song, and a Letterboxd film with a love n
       "id": "1",
       "type": "youtube",
       "mediaId": "dQw4w9WgXcQ",
-      "x": 15,
-      "y": 25,
+      "x": 25,
+      "y": 30,
       "rotation": -5,
       "scale": 0.8
     },
@@ -165,8 +167,8 @@ User wants: a YouTube video, a Spotify song, and a Letterboxd film with a love n
       "id": "2",
       "type": "spotify",
       "mediaId": "track/4uLU6hMCjMI75M1A2tKUQC",
-      "x": 85,
-      "y": 55,
+      "x": 75,
+      "y": 50,
       "rotation": 5,
       "scale": 0.7
     },
@@ -174,8 +176,8 @@ User wants: a YouTube video, a Spotify song, and a Letterboxd film with a love n
       "id": "3",
       "type": "letterboxd",
       "mediaId": "https://letterboxd.com/film/her",
-      "x": 20,
-      "y": 80,
+      "x": 30,
+      "y": 70,
       "rotation": 0,
       "scale": 0.75
     }

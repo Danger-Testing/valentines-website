@@ -332,8 +332,6 @@ function Home() {
     "Dear,\n\nHappy Valentine's Day!\nI love you like the internet!\n\nSincerely,",
   );
   const [savedNote, setSavedNote] = useState<string | null>(null);
-  const [isUnwrapping, setIsUnwrapping] = useState(false);
-  const [showUnwrappedNote, setShowUnwrappedNote] = useState(false);
   const [canvasScale, setCanvasScale] = useState(1);
   const [toast, setToast] = useState<{
     message: string;
@@ -664,8 +662,7 @@ function Home() {
         if (showModal) setShowModal(null);
         if (showInput) setShowInput(false);
         if (showNoteModal) setShowNoteModal(false);
-        if (showUnwrappedNote) setShowUnwrappedNote(false);
-        return;
+                return;
       }
 
       if (
@@ -688,12 +685,12 @@ function Home() {
     };
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [isViewingShared, showInput, showModal, showNoteModal, showUnwrappedNote]);
+  }, [isViewingShared, showInput, showModal, showNoteModal]);
 
   // Focus trap for modals
   useEffect(() => {
     const isModalOpen =
-      showModal || showInput || showNoteModal || showUnwrappedNote;
+      showModal || showInput || showNoteModal;
     if (!isModalOpen) return;
 
     const handleTab = (e: KeyboardEvent) => {
@@ -728,7 +725,7 @@ function Home() {
 
     window.addEventListener("keydown", handleTab);
     return () => window.removeEventListener("keydown", handleTab);
-  }, [showModal, showInput, showNoteModal, showUnwrappedNote]);
+  }, [showModal, showInput, showNoteModal]);
 
   const deleteItem = (id: string) => {
     setItems(items.filter((i) => i.id !== id));
@@ -944,61 +941,9 @@ function Home() {
           }}
         >
           {/* Flowers background */}
-          <div
-            className={`absolute inset-0 ${isViewingShared && savedNote && !showUnwrappedNote ? "cursor-pointer" : ""}`}
-            onClick={() => {
-              if (
-                isViewingShared &&
-                savedNote &&
-                !isUnwrapping &&
-                !showUnwrappedNote
-              ) {
-                setIsUnwrapping(true);
-                // After animation completes, show the note modal
-                setTimeout(() => {
-                  setIsUnwrapping(false);
-                  setShowUnwrappedNote(true);
-                }, 1500);
-              }
-            }}
-          >
-            {/* Wrap overlay - shown when viewing shared and hasn't been unwrapped yet */}
-            {isViewingShared && savedNote && !showUnwrappedNote && (
-              <div
-                className={`absolute inset-0 z-10 flex items-center justify-center transition-all duration-1000 ${
-                  isUnwrapping ? "opacity-0 scale-150" : "opacity-100 scale-100"
-                }`}
-              >
-                <Image
-                  src="/wrap2.png"
-                  alt="Gift wrap"
-                  fill
-                  className="object-contain select-none"
-                  draggable={false}
-                  priority
-                />
-                {!isUnwrapping && (
-                  <div className="absolute inset-0 flex items-center justify-center">
-                    <div className="bg-white/80 backdrop-blur-sm rounded-full px-6 py-3 shadow-lg animate-pulse">
-                      <span className="text-black font-medium">
-                        Tap to unwrap
-                      </span>
-                    </div>
-                  </div>
-                )}
-              </div>
-            )}
+          <div className="absolute inset-0">
             {flowerImage === "ascii" ? (
-              <div
-                className={`absolute inset-0 flex items-center justify-center select-none transition-all duration-1000 ${
-                  isViewingShared &&
-                  savedNote &&
-                  !showUnwrappedNote &&
-                  !isUnwrapping
-                    ? "opacity-0"
-                    : "opacity-100"
-                }`}
-              >
+              <div className="absolute inset-0 flex items-center justify-center select-none">
                 <pre className="text-[0.6rem] sm:text-[1rem] md:text-[1.4rem] leading-[1.1] text-black whitespace-pre font-mono">
                   {ASCII_FLOWER}
                 </pre>
@@ -1008,14 +953,7 @@ function Home() {
                 src={`/${flowerImage}.png`}
                 alt="Flower bouquet"
                 fill
-                className={`object-contain select-none transition-all duration-1000 ${
-                  isViewingShared &&
-                  savedNote &&
-                  !showUnwrappedNote &&
-                  !isUnwrapping
-                    ? "opacity-0"
-                    : "opacity-100"
-                }`}
+                className="object-contain select-none"
                 draggable={false}
                 priority
               />
@@ -1156,42 +1094,50 @@ function Home() {
           height={88}
           className="h-14 md:h-20 w-auto"
         />
-        {isViewingShared && (
-          <p className="text-[#E6E6E6] text-fluid-sm">
-            (curate and gift your own)
-          </p>
-        )}
       </a>
 
-      {/* Turtle top right */}
-      <div className="fixed top-4 right-4 md:top-6 md:right-6 z-40">
-        <a
-          href="https://dangertesting.com"
-          target="_blank"
-          rel="noopener noreferrer"
-          className="cursor-pointer"
-        >
-          <Image
-            src="/turtle.png"
-            alt="Turtle"
-            width={150}
-            height={150}
-            className="w-16 h-16 md:w-28 md:h-28"
-          />
-        </a>
-      </div>
+      {/* Turtle top right - hide on sharing page */}
+      {!isViewingShared && (
+        <div className="fixed top-4 right-4 md:top-6 md:right-6 z-40">
+          <a
+            href="https://dangertesting.com"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="cursor-pointer"
+          >
+            <Image
+              src="/turtle.png"
+              alt="Turtle"
+              width={150}
+              height={150}
+              className="w-16 h-16 md:w-28 md:h-28"
+            />
+          </a>
+        </div>
+      )}
 
-      {/* Spotify embed bottom left */}
-      <div className="fixed bottom-4 left-4 md:bottom-6 md:left-6 z-40 hidden md:block">
-        <iframe
-          src="https://open.spotify.com/embed/track/32q1h0jij3ePpp47ShIqVy?utm_source=generator&theme=0"
-          width="300"
-          height="80"
-          className="rounded-xl"
-          allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
-          loading="lazy"
-        />
-      </div>
+      {/* Spotify embed bottom left - hide on sharing page */}
+      {!isViewingShared && (
+        <div className="fixed bottom-4 left-4 md:bottom-6 md:left-6 z-40 hidden md:block">
+          <iframe
+            src="https://open.spotify.com/embed/track/32q1h0jij3ePpp47ShIqVy?utm_source=generator&theme=0"
+            width="300"
+            height="80"
+            className="rounded-xl"
+            allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
+            loading="lazy"
+          />
+        </div>
+      )}
+
+      {/* Note display bottom right - only on sharing page */}
+      {isViewingShared && savedNote && (
+        <div className="fixed bottom-4 right-4 md:bottom-6 md:right-6 z-40 max-w-xs md:max-w-sm">
+          <div className="bg-white/80 backdrop-blur-md rounded-xl p-4 shadow-lg">
+            <p className="text-black text-sm whitespace-pre-wrap">{savedNote}</p>
+          </div>
+        </div>
+      )}
 
       {/* Left Sidebar with curated media */}
       {!isViewingShared && (
@@ -1481,34 +1427,6 @@ function Home() {
               className="text-sm text-gray-500 hover:text-black transition-colors"
             >
               Continue editing
-            </button>
-          </div>
-        </div>
-      )}
-
-      {/* Note modal - shown after unwrapping animation */}
-      {isViewingShared && showUnwrappedNote && savedNote && (
-        <div
-          role="dialog"
-          aria-modal="true"
-          aria-labelledby="note-modal-title"
-          className="fixed inset-0 bg-black/10 backdrop-blur-md z-50 flex items-center justify-center p-4"
-          onClick={() => setShowUnwrappedNote(false)}
-        >
-          <div
-            ref={modalRef}
-            className="bg-white/80 backdrop-blur-xl rounded-2xl px-8 py-6 max-w-md w-full shadow-xl animate-fade-in"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <h2 id="note-modal-title" className="sr-only">
-              Valentine&apos;s Note
-            </h2>
-            <p className="text-black whitespace-pre-wrap mb-4">{savedNote}</p>
-            <button
-              onClick={() => setShowUnwrappedNote(false)}
-              className="w-full px-4 py-3 bg-[#DB234F] text-white rounded-lg font-medium cursor-pointer"
-            >
-              View Bouquet
             </button>
           </div>
         </div>
