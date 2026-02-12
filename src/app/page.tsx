@@ -840,10 +840,17 @@ function Home() {
       </div>
 
       {/* Header */}
-      <a href="/" className="fixed top-6 left-6 z-40 cursor-pointer">
+      <a href="/" className="fixed top-6 left-6 z-40 cursor-pointer flex items-center gap-2">
         <span className="text-2xl md:text-3xl font-medium" style={{ fontFamily: 'Helvetica, Arial, sans-serif', color: '#C2021B' }}>
           link bouquet
         </span>
+        <Image
+          src="/link.png"
+          alt=""
+          width={100}
+          height={100}
+          className="w-8 h-8 md:w-10 md:h-10 object-contain"
+        />
       </a>
 
       {/* Turtle top right */}
@@ -864,16 +871,6 @@ function Home() {
         </a>
       </div>
 
-      {/* Link image bottom left */}
-      <div className="fixed bottom-0 left-0 z-40 hidden md:block pointer-events-none">
-        <Image
-          src="/link.png"
-          alt=""
-          width={400}
-          height={400}
-          className="w-36 h-36 object-contain"
-        />
-      </div>
 
       {/* Note display bottom right - only on sharing page */}
       {isViewingShared && savedNote && (
