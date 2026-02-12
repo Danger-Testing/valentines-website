@@ -22,31 +22,41 @@ import {
 
 // Splash screen component
 function SplashScreen({ onComplete }: { onComplete: () => void }) {
-  const [step, setStep] = useState(1);
-  const onCompleteRef = useRef(onComplete);
-  onCompleteRef.current = onComplete;
+  const [step, setStep] = useState<"step1" | "black1" | "step2" | "black2">("step1");
 
   useEffect(() => {
-    // Step 1: Show step1.png for 2000ms
-    const timer1 = setTimeout(() => setStep(2), 2000);
-    // Black screen for 500ms
-    const timer2 = setTimeout(() => setStep(3), 2500);
-    // Step 2: Show step2.png for 2000ms
-    const timer3 = setTimeout(() => setStep(4), 4500);
-    // Black screen then complete
-    const timer4 = setTimeout(() => onCompleteRef.current(), 5000);
+    let cancelled = false;
 
-    return () => {
-      clearTimeout(timer1);
-      clearTimeout(timer2);
-      clearTimeout(timer3);
-      clearTimeout(timer4);
+    const sequence = async () => {
+      // Step 1: Show step1.png for 2000ms
+      await new Promise(r => setTimeout(r, 2000));
+      if (cancelled) return;
+      setStep("black1");
+
+      // Black screen for 500ms
+      await new Promise(r => setTimeout(r, 500));
+      if (cancelled) return;
+      setStep("step2");
+
+      // Step 2: Show step2.png for 2000ms
+      await new Promise(r => setTimeout(r, 2000));
+      if (cancelled) return;
+      setStep("black2");
+
+      // Black screen for 500ms then complete
+      await new Promise(r => setTimeout(r, 500));
+      if (cancelled) return;
+      onComplete();
     };
-  }, []);
+
+    sequence();
+
+    return () => { cancelled = true; };
+  }, [onComplete]);
 
   return (
     <div className="fixed inset-0 z-[100] bg-black">
-      {step === 1 && (
+      {step === "step1" && (
         <Image
           src="/step1.png"
           alt=""
@@ -55,7 +65,7 @@ function SplashScreen({ onComplete }: { onComplete: () => void }) {
           priority
         />
       )}
-      {step === 3 && (
+      {step === "step2" && (
         <Image
           src="/step2.png"
           alt=""
