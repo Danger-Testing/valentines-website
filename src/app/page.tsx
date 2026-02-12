@@ -70,7 +70,7 @@ function SubstackThumbnail({ url, isModal }: { url: string; isModal: boolean }) 
       href={url}
       target="_blank"
       rel="noopener noreferrer"
-      className="block w-[200px] h-[140px] rounded-xl overflow-hidden shadow-lg bg-white hover:shadow-xl transition-shadow"
+      className="block w-[200px] h-[140px] rounded-xl overflow-hidden shadow-lg bg-white hover:shadow-xl transition-shadow cursor-pointer"
       onClick={(e) => e.stopPropagation()}
     >
       {thumbnail ? (
@@ -124,7 +124,7 @@ function LetterboxdThumbnail({ url, isModal }: { url: string; isModal: boolean }
 
   if (isModal) {
     return (
-      <a href={url} target="_blank" rel="noopener noreferrer" className="block">
+      <a href={url} target="_blank" rel="noopener noreferrer" className="block cursor-pointer">
         <div className="w-[300px] bg-[#14181c] rounded-xl overflow-hidden shadow-lg">
           {poster ? (
             <img src={poster} alt={title} className="w-full h-[450px] object-cover" />
@@ -154,7 +154,7 @@ function LetterboxdThumbnail({ url, isModal }: { url: string; isModal: boolean }
   }
 
   return (
-    <a href={url} target="_blank" rel="noopener noreferrer" className="block">
+    <a href={url} target="_blank" rel="noopener noreferrer" className="block cursor-pointer">
       <div className="w-[140px] h-[210px] bg-[#14181c] rounded-xl overflow-hidden shadow-lg">
         {poster ? (
           <div className="relative w-full h-full">
@@ -704,7 +704,7 @@ function Home() {
 
       {/* Turtle top right */}
       <div className="fixed top-6 right-6 z-40">
-        <a href="https://dangertesting.com" target="_blank" rel="noopener noreferrer">
+        <a href="https://dangertesting.com" target="_blank" rel="noopener noreferrer" className="cursor-pointer">
           <Image src="/turtle.svg" alt="Turtle" width={80} height={80} />
         </a>
       </div>
@@ -806,7 +806,7 @@ function Home() {
           {/* Flower toggle button */}
           <button
             onClick={() => setFlowerImage(flowerImage === 'flowers' ? 'flowers2' : 'flowers')}
-            className="w-full rounded-lg bg-[#E6E6E6]/50 backdrop-blur-md transition-all overflow-hidden"
+            className="w-full rounded-lg bg-[#E6E6E6]/50 backdrop-blur-md transition-all overflow-hidden cursor-pointer hover:bg-white/90 relative group"
           >
             <Image
               src={`/${flowerImage === 'flowers' ? 'flowers2' : 'flowers'}.png`}
@@ -815,22 +815,45 @@ function Home() {
               height={200}
               className="w-full h-auto"
             />
+            <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+              <span className="text-white font-medium">Change Flower</span>
+            </div>
           </button>
 
-          {/* Background color picker */}
-          <div className="relative h-12 w-full rounded-lg bg-[#E6E6E6]/50 backdrop-blur-md border-2 border-[#E6E6E6]/50 overflow-hidden">
-            <input
-              type="color"
-              value={bgColor}
-              onChange={(e) => setBgColor(e.target.value)}
-              className="absolute inset-0 w-[200%] h-[200%] -top-1/2 -left-1/2 cursor-pointer"
+          {/* Background color picker squares */}
+          <div className="flex justify-center gap-3 py-2">
+            {/* Blue square */}
+            <button
+              onClick={() => setBgColor('#93C5FD')}
+              className="w-10 h-10 rounded-lg bg-[#93C5FD] border-2 border-[#E6E6E6] hover:scale-110 transition-transform cursor-pointer"
+              title="Blue background"
             />
+            {/* Pink square */}
+            <button
+              onClick={() => setBgColor('#FCA5A5')}
+              className="w-10 h-10 rounded-lg bg-[#FCA5A5] border-2 border-[#E6E6E6] hover:scale-110 transition-transform cursor-pointer"
+              title="Pink background"
+            />
+            {/* Custom color picker square */}
+            <div className="relative w-10 h-10">
+              <input
+                type="color"
+                value={bgColor}
+                onChange={(e) => setBgColor(e.target.value)}
+                className="absolute inset-0 w-full h-full rounded-lg cursor-pointer opacity-0"
+                title="Custom color"
+              />
+              <div
+                className="w-10 h-10 rounded-lg border-2 border-[#E6E6E6] pointer-events-none"
+                style={{ background: `conic-gradient(from 0deg, red, yellow, lime, aqua, blue, magenta, red)` }}
+              />
+            </div>
           </div>
 
           {/* Add link button */}
           <button
             onClick={handlePaste}
-            className="h-12 w-full rounded-lg bg-[#E6E6E6]/50 backdrop-blur-md transition-all flex items-center justify-center text-black hover:bg-white/90"
+            className="h-12 w-full rounded-lg bg-[#E6E6E6]/50 backdrop-blur-md transition-all flex items-center justify-center text-black hover:bg-white/90 cursor-pointer"
           >
             <span className="font-medium">Add Link</span>
           </button>
