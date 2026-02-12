@@ -187,9 +187,35 @@ const CURATED_BUCKETS = [
     ],
   },
   {
-    name: "Lily",
-    pfp: "/pfp.jpg",
-    media: [],
+    name: "Liz",
+    pfp: "/liz.png",
+    media: [
+      {
+        type: "link" as MediaType,
+        mediaId: "https://unewsonline.com/2024/10/the-history-and-legacy-of-one-direction/",
+        label: "The history and legacy of One Direction",
+      },
+      {
+        type: "link" as MediaType,
+        mediaId: "https://onedirection.tumblr.com/",
+        label: "One Direction on Tumblr",
+      },
+      {
+        type: "link" as MediaType,
+        mediaId: "https://www.bbc.com/news/entertainment-arts-53470098",
+        label: "In pictures: 10 years of One Direction",
+      },
+      {
+        type: "youtube" as MediaType,
+        mediaId: "syFZfO_wfMQ",
+        label: "One Direction - Night Changes",
+      },
+      {
+        type: "youtube" as MediaType,
+        mediaId: "QJO3ROT-A4E",
+        label: "One Direction - What Makes You Beautiful",
+      },
+    ],
   },
 ];
 
