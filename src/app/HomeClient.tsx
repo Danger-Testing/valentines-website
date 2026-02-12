@@ -278,6 +278,7 @@ function Home() {
   // Load bouquet from URL if slug parameter exists
   useEffect(() => {
     const slug = searchParams.get("b");
+    const isEditMode = searchParams.get("edit") === "1";
     if (slug) {
       setIsLoading(true);
       // Check if we just created this bouquet
@@ -297,6 +298,12 @@ function Home() {
         setSavedFromName(result.from_name || null);
         setSavedToName(result.to_name || null);
         setBgColor(result.bg_color || "#ffffff");
+        // Also set editable note/names if in edit mode
+        if (isEditMode) {
+          setNote(result.note || "Happy Valentine's Day!\nI love you like the internet!");
+          setFromName(result.from_name || "");
+          setToName(result.to_name || "");
+        }
         // Set the flower image based on saved image_url
         if (result.image_url === "/flowers2.png") {
           setFlowerImage("flowers2");
@@ -305,7 +312,12 @@ function Home() {
         } else {
           setFlowerImage("flowers");
         }
-        setIsViewingShared(true);
+        // Only set as viewing shared if not in edit mode
+        if (isEditMode) {
+          setIsViewingShared(false);
+        } else {
+          setIsViewingShared(true);
+        }
         setIsLoading(false);
       });
     }
