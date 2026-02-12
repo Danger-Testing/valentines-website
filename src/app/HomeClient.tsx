@@ -276,6 +276,48 @@ const CURATED_BUCKETS = [
       },
     ],
   },
+  {
+    name: "ceci",
+    pfp: "/ceci.jpg",
+    link: "#",
+    media: [
+      {
+        type: "link" as MediaType,
+        mediaId: "https://ceciliaazcarate.com/",
+        label: "Cecilia Azcarate",
+      },
+      {
+        type: "youtube" as MediaType,
+        mediaId: "nFWgiZxnz7o",
+        label: "Koudlam - See You All",
+      },
+      {
+        type: "link" as MediaType,
+        mediaId: "https://bitcoin.org/bitcoin.pdf",
+        label: "Bitcoin Whitepaper",
+      },
+      {
+        type: "youtube" as MediaType,
+        mediaId: "MoXrMOsnRVo",
+        label: "Tous Les Matins du Monde - Improvisation sur les Folies",
+      },
+      {
+        type: "link" as MediaType,
+        mediaId: "https://artsandculture.google.com/asset/EQFVNZZUaQNQQA",
+        label: "Stanley Kubrick - Barry Lyndon Portrait",
+      },
+      {
+        type: "link" as MediaType,
+        mediaId: "https://artsandculture.google.com/asset/the-annunciation-jan-van-eyck/xwFVdn0XxLmf9Q",
+        label: "The Annunciation - Jan van Eyck",
+      },
+      {
+        type: "youtube" as MediaType,
+        mediaId: "s5MUxuY4Hbw",
+        label: "The shooting paintings of Niki de Saint Phalle",
+      },
+    ],
+  },
 ];
 
 function Home() {
