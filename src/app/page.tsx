@@ -28,23 +28,23 @@ function SplashScreen({ onComplete }: { onComplete: () => void }) {
     let cancelled = false;
 
     const sequence = async () => {
-      // Step 1: Show step1.png for 2000ms
-      await new Promise(r => setTimeout(r, 2000));
+      // Step 1: Show step1.png for 1000ms
+      await new Promise(r => setTimeout(r, 1000));
       if (cancelled) return;
       setStep("black1");
 
-      // Black screen for 500ms
-      await new Promise(r => setTimeout(r, 500));
+      // Black screen for 1000ms
+      await new Promise(r => setTimeout(r, 1000));
       if (cancelled) return;
       setStep("step2");
 
-      // Step 2: Show step2.png for 2000ms
-      await new Promise(r => setTimeout(r, 2000));
+      // Step 2: Show step2.png for 1000ms
+      await new Promise(r => setTimeout(r, 1000));
       if (cancelled) return;
       setStep("black2");
 
-      // Black screen for 500ms then complete
-      await new Promise(r => setTimeout(r, 500));
+      // Black screen for 1000ms then complete
+      await new Promise(r => setTimeout(r, 1000));
       if (cancelled) return;
       onComplete();
     };
