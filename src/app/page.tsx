@@ -25,19 +25,25 @@ function SplashScreen({ onComplete }: { onComplete: () => void }) {
   const [step, setStep] = useState(1);
 
   useEffect(() => {
-    // Step 1: Show step1.png for 1000ms
-    const timer1 = setTimeout(() => setStep(2), 1000);
-    // Step 2: Show step2.png for 1000ms then complete
-    const timer2 = setTimeout(() => onComplete(), 2000);
+    // Step 1: Show step1.png for 2000ms
+    const timer1 = setTimeout(() => setStep(2), 2000);
+    // Black screen for 500ms
+    const timer2 = setTimeout(() => setStep(3), 2500);
+    // Step 2: Show step2.png for 2000ms
+    const timer3 = setTimeout(() => setStep(4), 4500);
+    // Black screen then complete
+    const timer4 = setTimeout(() => onComplete(), 5000);
 
     return () => {
       clearTimeout(timer1);
       clearTimeout(timer2);
+      clearTimeout(timer3);
+      clearTimeout(timer4);
     };
   }, [onComplete]);
 
   return (
-    <div className="fixed inset-0 z-[100]">
+    <div className="fixed inset-0 z-[100] bg-black">
       {step === 1 && (
         <Image
           src="/step1.png"
@@ -47,12 +53,12 @@ function SplashScreen({ onComplete }: { onComplete: () => void }) {
           priority
         />
       )}
-      {step === 2 && (
+      {step === 3 && (
         <Image
           src="/step2.png"
           alt=""
           fill
-          className="object-cover animate-fade-in"
+          className="object-cover"
           priority
         />
       )}
