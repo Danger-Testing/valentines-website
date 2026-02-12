@@ -854,40 +854,16 @@ function Home() {
         </div>
       )}
 
-      {/* Link image and Spotify embed bottom left - hide on sharing page */}
+      {/* Link image bottom left - hide on sharing page */}
       {!isViewingShared && (
-        <div className="fixed bottom-4 left-4 md:bottom-6 md:left-6 z-40 hidden md:block">
+        <div className="fixed bottom-0 left-0 z-40 hidden md:block pointer-events-none">
           <Image
             src="/link.png"
             alt=""
             width={400}
             height={400}
-            className="absolute -bottom-14 -left-10 w-72 h-72 object-contain z-10 pointer-events-none"
+            className="w-72 h-72 object-contain"
           />
-          {/* Spotify player hidden for now
-          <div
-            className="cursor-grab active:cursor-grabbing"
-            draggable
-            onDragStart={(e) => {
-              e.dataTransfer.setData(
-                "application/json",
-                JSON.stringify({
-                  type: "spotify",
-                  mediaId: "track/32q1h0jij3ePpp47ShIqVy",
-                }),
-              );
-            }}
-          >
-            <iframe
-              src="https://open.spotify.com/embed/track/32q1h0jij3ePpp47ShIqVy?utm_source=generator&theme=0"
-              width="300"
-              height="80"
-              className="rounded-xl pointer-events-none"
-              allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
-              loading="lazy"
-            />
-          </div>
-          */}
         </div>
       )}
 
