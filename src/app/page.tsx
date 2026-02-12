@@ -53,10 +53,10 @@ export async function generateMetadata({ searchParams }: Props): Promise<Metadat
     const ogImageUrl = `/api/og/bouquet?from=${encodeURIComponent(fromName)}&to=${encodeURIComponent(toName)}`;
 
     const title = fromName && toName
-      ? `A bouquet from ${fromName} to ${toName}`
+      ? `Link Bouquet from ${fromName} to ${toName}`
       : "Link Bouquet";
     const description = fromName && toName
-      ? `${fromName} made a special bouquet for ${toName}`
+      ? `${fromName} curated a bouquet of links for ${toName}`
       : "Create and share beautiful bouquets of your favorite links";
 
     return {
