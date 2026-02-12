@@ -979,6 +979,21 @@ function Home() {
                 </div>
               ))}
             </div>
+            {/* Profile pictures row */}
+            <div className="px-4 mt-4 pt-4 border-t border-black/10">
+              <div className="flex justify-between">
+                {[1, 2, 3, 4, 5].map((i) => (
+                  <Image
+                    key={i}
+                    src="/pfp.jpg"
+                    alt={`Profile ${i}`}
+                    width={40}
+                    height={40}
+                    className="w-10 h-10 rounded-full object-cover"
+                  />
+                ))}
+              </div>
+            </div>
           </div>
           {/* Toggle button */}
           <button
