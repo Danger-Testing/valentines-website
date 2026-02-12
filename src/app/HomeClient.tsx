@@ -162,27 +162,27 @@ const CURATED_BUCKETS = [
       {
         type: "youtube" as MediaType,
         mediaId: "mHQmnumnNgo",
-        label: "YouTube",
+        label: "Triadisches Ballett von Oskar Schlemmer - Bauhaus (Best Quality)",
       },
       {
         type: "youtube" as MediaType,
         mediaId: "nLCY5Wl6ZMA",
-        label: "YouTube",
+        label: "Bajka [A Fairy Tale] - Poland, 1968",
       },
       {
         type: "spotify" as MediaType,
         mediaId: "playlist/3vDFi3Ggjv9xoLLbbSWvQR",
-        label: "Playlist",
+        label: "i have just now come from a party where i was its life and soul. everyon laughed and admired me",
       },
       {
         type: "youtube" as MediaType,
         mediaId: "npol_Y-expQ",
-        label: "YouTube",
+        label: "Angel (Joseph Cornell, 1957)",
       },
       {
         type: "spotify" as MediaType,
         mediaId: "track/1APu9lSrXWUarvP61myILk",
-        label: "Track",
+        label: "blue valentines by tom waits",
       },
     ],
   },
@@ -1118,6 +1118,11 @@ function Home() {
               ))}
               {CURATED_BUCKETS[selectedBucket].media.length === 0 && (
                 <p className="text-black/50 text-sm text-center py-4">No links yet</p>
+              )}
+              {CURATED_BUCKETS[selectedBucket].media.length > 0 && (
+                <p className="text-black/50 text-xs text-center pt-4 italic">
+                  Curated by {CURATED_BUCKETS[selectedBucket].name}
+                </p>
               )}
             </div>
           </div>
