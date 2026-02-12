@@ -230,7 +230,7 @@ function Home() {
   const [items, setItems] = useState<MediaItem[]>([]);
   const [showInput, setShowInput] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [selectedBucket, setSelectedBucket] = useState(0);
+  const [selectedBucket, setSelectedBucket] = useState(3);
   const [showModal, setShowModal] = useState<MediaItem | null>(null);
   const [dragging, setDragging] = useState<string | null>(null);
   const [hasDragged, setHasDragged] = useState(false);
@@ -975,10 +975,14 @@ function Home() {
       </div>
 
       {/* Header */}
-      <a href="/" className="fixed top-6 left-6 z-40 cursor-pointer">
-        <span className="text-2xl md:text-3xl font-medium" style={{ fontFamily: 'Helvetica, Arial, sans-serif', color: '#C2021B' }}>
-          link bouquet
-        </span>
+      <a href="/" className="fixed top-4 left-4 md:top-6 md:left-6 z-20 cursor-pointer">
+        <Image
+          src="/logo.png"
+          alt="Link Bouquet"
+          width={500}
+          height={400}
+          className="h-36 md:h-56 w-auto"
+        />
       </a>
 
       {/* Link image bottom left */}
