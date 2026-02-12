@@ -25,9 +25,9 @@ function SplashScreen({ onComplete }: { onComplete: () => void }) {
   const [step, setStep] = useState(1);
 
   useEffect(() => {
-    // Step 1: Show black screen for 800ms
-    const timer1 = setTimeout(() => setStep(2), 800);
-    // Step 2: Show for 1200ms then complete
+    // Step 1: Show step1.png for 1000ms
+    const timer1 = setTimeout(() => setStep(2), 1000);
+    // Step 2: Show step2.png for 1000ms then complete
     const timer2 = setTimeout(() => onComplete(), 2000);
 
     return () => {
@@ -37,24 +37,24 @@ function SplashScreen({ onComplete }: { onComplete: () => void }) {
   }, [onComplete]);
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black transition-opacity duration-500">
+    <div className="fixed inset-0 z-[100]">
       {step === 1 && (
-        <div className="animate-fade-in" />
+        <Image
+          src="/step1.png"
+          alt=""
+          fill
+          className="object-cover"
+          priority
+        />
       )}
       {step === 2 && (
-        <div className="animate-fade-in flex flex-col items-center gap-6">
-          <Image
-            src="/logo.png"
-            alt="Link Bouquet"
-            width={400}
-            height={100}
-            className="h-20 md:h-28 w-auto invert"
-            priority
-          />
-          <p className="text-white/60 text-sm tracking-widest uppercase">
-            Curate your love
-          </p>
-        </div>
+        <Image
+          src="/step2.png"
+          alt=""
+          fill
+          className="object-cover animate-fade-in"
+          priority
+        />
       )}
     </div>
   );
