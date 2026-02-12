@@ -33,6 +33,8 @@ export interface BouquetData {
   items: MediaItem[]
   note?: string | null
   bg_color?: string | null
+  from_name?: string | null
+  to_name?: string | null
 }
 
 // Generate a short, readable slug for sharing
@@ -62,6 +64,8 @@ export async function saveBouquet(data: BouquetData): Promise<{ slug: string } |
       items: data.items,
       note: data.note || null,
       bg_color: data.bg_color || '#ffffff',
+      from_name: data.from_name || null,
+      to_name: data.to_name || null,
     })
 
   if (error) {
@@ -83,7 +87,7 @@ export async function loadBouquet(slug: string): Promise<BouquetData | { error: 
 
   const { data, error } = await supabase
     .from('bouquets')
-    .select('image_url, paths, items, note, bg_color')
+    .select('image_url, paths, items, note, bg_color, from_name, to_name')
     .eq('slug', slug)
     .single()
 
@@ -97,5 +101,7 @@ export async function loadBouquet(slug: string): Promise<BouquetData | { error: 
     items: data.items as MediaItem[],
     note: data.note as string | null,
     bg_color: data.bg_color as string | null,
+    from_name: data.from_name as string | null,
+    to_name: data.to_name as string | null,
   }
 }
