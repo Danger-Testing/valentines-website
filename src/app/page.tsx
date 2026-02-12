@@ -612,13 +612,16 @@ function Home() {
         }}
       >
         {/* Flowers background */}
-        <div className="absolute inset-0 flex items-center justify-center">
+        <div
+          className="absolute inset-0 flex items-center justify-center cursor-pointer"
+          onClick={() => !isViewingShared && handlePaste()}
+        >
           <Image
             src={`/${flowerImage}.png`}
             alt="Flower bouquet"
             width={900}
             height={1200}
-            className="object-contain max-h-[95vh] pointer-events-none select-none"
+            className="object-contain max-h-[95vh] select-none"
             draggable={false}
             priority
           />
@@ -816,7 +819,9 @@ function Home() {
               className="w-full h-auto"
             />
             <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-              <span className="text-white font-medium">Change Flower</span>
+              <span className="text-white font-medium text-center">
+                Change<br />Flower
+              </span>
             </div>
           </button>
 
@@ -873,7 +878,7 @@ function Home() {
             <button
               onClick={handleSave}
               disabled={isSaving}
-              className="h-12 w-full rounded-lg bg-[#E6E6E6]/50 backdrop-blur-md hover:bg-white/90 transition-all flex items-center justify-center text-black disabled:opacity-50"
+              className="h-12 w-full rounded-lg bg-black hover:bg-gray-800 transition-all flex items-center justify-center text-white disabled:opacity-50 cursor-pointer"
             >
               <span className="font-medium">{isSaving ? 'Saving...' : 'Save & Share'}</span>
             </button>
