@@ -871,7 +871,7 @@ function Home() {
       {/* Note display bottom right - only on sharing page */}
       {isViewingShared && savedNote && (
         <div className="fixed bottom-4 right-4 md:bottom-6 md:right-6 z-40 max-w-xs md:max-w-sm">
-          <div className="bg-white p-4">
+          <div className="bg-[#E6E6E6]/50 backdrop-blur-md rounded-xl p-4">
             <p className="text-black text-sm whitespace-pre-wrap">
               {savedNote}
             </p>
@@ -1116,7 +1116,6 @@ function Home() {
       {isViewingShared && searchParams.get("created") === "1" && (
         <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-40">
           <div className="bg-white/50 backdrop-blur-xl rounded-xl shadow-xl p-5 flex flex-col gap-3 min-w-[320px]">
-            <span className="font-semibold text-lg text-black">Curated</span>
             <p className="text-black">Share this link with someone special:</p>
             <div className="flex gap-2">
               <input
@@ -1158,7 +1157,7 @@ function Home() {
               href="/"
               className="text-sm text-gray-500 hover:text-black transition-colors text-center"
             >
-              Create your own
+              Continue editing
             </a>
           </div>
         </div>
