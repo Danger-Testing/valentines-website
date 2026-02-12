@@ -196,6 +196,9 @@ function Home() {
     setShareUrl(url);
     setShowNoteModal(false);
     setIsSaving(false);
+
+    // Navigate to the shared page
+    window.location.href = `?b=${result.slug}`;
   };
 
   // Copy share URL to clipboard
@@ -855,9 +858,9 @@ function Home() {
         </div>
       )}
 
-      {/* Note display bottom right - only on sharing page */}
+      {/* Note display top right - only on sharing page */}
       {isViewingShared && savedNote && (
-        <div className="fixed bottom-4 right-4 md:bottom-6 md:right-6 z-40 max-w-xs md:max-w-sm">
+        <div className="fixed top-4 right-4 md:top-6 md:right-6 z-40 max-w-xs md:max-w-sm">
           <div className="bg-white p-4">
             <p className="text-black text-sm whitespace-pre-wrap">
               {savedNote}
@@ -1099,8 +1102,8 @@ function Home() {
         </div>
       )}
 
-      {/* Share URL display */}
-      {shareUrl && (
+      {/* Share URL display - show on shared page */}
+      {isViewingShared && (
         <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-40">
           <div className="bg-white/50 backdrop-blur-xl rounded-xl shadow-xl p-5 flex flex-col gap-3 min-w-[320px]">
             <span className="font-semibold text-lg text-black">Curated</span>
@@ -1108,23 +1111,28 @@ function Home() {
             <div className="flex gap-2">
               <input
                 type="text"
-                value={shareUrl}
+                value={typeof window !== "undefined" ? window.location.href : ""}
                 readOnly
                 className="flex-1 px-4 py-2 bg-black/10 rounded-lg text-black text-sm border-none"
               />
               <button
                 onClick={async () => {
+                  const currentUrl = window.location.href;
                   if (
                     navigator.share &&
                     /iPhone|iPad|iPod|Android/i.test(navigator.userAgent)
                   ) {
                     try {
-                      await navigator.share({ url: shareUrl || "" });
-                    } catch (e) {
-                      copyShareUrl();
+                      await navigator.share({ url: currentUrl });
+                    } catch {
+                      await navigator.clipboard.writeText(currentUrl);
+                      setCopied(true);
+                      setTimeout(() => setCopied(false), 2000);
                     }
                   } else {
-                    copyShareUrl();
+                    await navigator.clipboard.writeText(currentUrl);
+                    setCopied(true);
+                    setTimeout(() => setCopied(false), 2000);
                   }
                 }}
                 className={`px-4 py-2 rounded-lg transition-colors font-medium cursor-pointer ${
@@ -1136,12 +1144,12 @@ function Home() {
                 {copied ? "Copied!" : "Share"}
               </button>
             </div>
-            <button
-              onClick={() => setShareUrl(null)}
-              className="text-sm text-gray-500 hover:text-black transition-colors"
+            <a
+              href="/"
+              className="text-sm text-gray-500 hover:text-black transition-colors text-center"
             >
-              Continue editing
-            </button>
+              Create your own
+            </a>
           </div>
         </div>
       )}
