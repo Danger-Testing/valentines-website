@@ -854,7 +854,7 @@ function Home() {
         </div>
       )}
 
-      {/* Link image and Spotify embed bottom left - hide on sharing page */}
+      {/* Link image bottom left - hide on sharing page */}
       {!isViewingShared && (
         <div className="fixed bottom-4 left-4 md:bottom-6 md:left-6 z-40 hidden md:block">
           <Image
@@ -864,6 +864,7 @@ function Home() {
             height={400}
             className="absolute -bottom-14 -left-10 w-72 h-72 object-contain z-10 pointer-events-none"
           />
+          {/* Spotify embed temporarily hidden
           <div
             className="cursor-grab active:cursor-grabbing"
             draggable
@@ -886,6 +887,7 @@ function Home() {
               loading="lazy"
             />
           </div>
+          */}
         </div>
       )}
 
