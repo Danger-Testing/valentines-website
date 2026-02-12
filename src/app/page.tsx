@@ -862,7 +862,7 @@ function Home() {
             alt=""
             width={400}
             height={400}
-            className="absolute -bottom-10 -left-10 w-72 h-72 object-contain -z-10"
+            className="absolute -bottom-10 -left-10 w-72 h-72 object-contain z-10 pointer-events-none"
           />
           <div
             className="cursor-grab active:cursor-grabbing"
