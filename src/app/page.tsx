@@ -1120,26 +1120,26 @@ function Home() {
             <div className="flex gap-2">
               <input
                 type="text"
-                value={typeof window !== "undefined" ? window.location.href : ""}
+                value={typeof window !== "undefined" ? `${window.location.origin}?b=${searchParams.get("b")}` : ""}
                 readOnly
                 className="flex-1 px-4 py-2 bg-black/10 rounded-lg text-black text-sm border-none"
               />
               <button
                 onClick={async () => {
-                  const currentUrl = window.location.href;
+                  const shareUrl = `${window.location.origin}?b=${searchParams.get("b")}`;
                   if (
                     navigator.share &&
                     /iPhone|iPad|iPod|Android/i.test(navigator.userAgent)
                   ) {
                     try {
-                      await navigator.share({ url: currentUrl });
+                      await navigator.share({ url: shareUrl });
                     } catch {
-                      await navigator.clipboard.writeText(currentUrl);
+                      await navigator.clipboard.writeText(shareUrl);
                       setCopied(true);
                       setTimeout(() => setCopied(false), 2000);
                     }
                   } else {
-                    await navigator.clipboard.writeText(currentUrl);
+                    await navigator.clipboard.writeText(shareUrl);
                     setCopied(true);
                     setTimeout(() => setCopied(false), 2000);
                   }
