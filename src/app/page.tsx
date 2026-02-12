@@ -963,17 +963,16 @@ function Home() {
           {/* Empty state prompt */}
           {!isViewingShared && items.length === 0 && (
             <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-10">
-              <div className="bg-white/80 backdrop-blur-sm rounded-2xl px-8 py-6 text-center max-w-xs shadow-lg">
-                <p className="text-black/80 text-fluid-lg font-medium mb-2">
-                  Start Curating
-                </p>
-                <p className="text-black/60 text-fluid-sm">
-                  Paste a link with{" "}
+              <div className="bg-white/80 backdrop-blur-sm rounded-2xl px-8 py-6 text-left max-w-sm shadow-lg">
+                <p className="text-black/60 text-fluid-sm mb-2">
+                  To create a bouquet, paste a link with{" "}
                   <kbd className="px-1.5 py-0.5 bg-black/10 rounded text-xs font-mono">
                     ⌘V
                   </kbd>{" "}
-                  or click "Add Link" to add YouTube, Spotify, Substack,
-                  Letterboxd & more
+                  or click "Add Link"
+                </p>
+                <p className="text-black/60 text-fluid-sm">
+                  To send your gift, click "Save & Share"
                 </p>
               </div>
             </div>
