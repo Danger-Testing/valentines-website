@@ -203,6 +203,12 @@ function Home() {
   const [copied, setCopied] = useState(false);
   const [flowerImage, setFlowerImage] = useState<'flowers' | 'flowers2'>('flowers');
   const [bgColor, setBgColor] = useState('#ffffff');
+  const [showNoteModal, setShowNoteModal] = useState(false);
+  const [note, setNote] = useState('Dear,\n\nHappy Valentine\'s Day!\nI love you like the internet!\n\nSincerely,');
+  const [savedNote, setSavedNote] = useState<string | null>(null);
+  const [isUnwrapping, setIsUnwrapping] = useState(false);
+  const [showUnwrappedNote, setShowUnwrappedNote] = useState(false);
+  const [canvasScale, setCanvasScale] = useState(1);
 
   const canvasRef = useRef<HTMLDivElement>(null);
 
@@ -218,6 +224,14 @@ function Home() {
           return;
         }
         setItems(result.items);
+        setSavedNote(result.note || null);
+        setBgColor(result.bg_color || '#ffffff');
+        // Set the flower image based on saved image_url
+        if (result.image_url === '/flowers2.png') {
+          setFlowerImage('flowers2');
+        } else {
+          setFlowerImage('flowers');
+        }
         setIsViewingShared(true);
         setIsLoading(false);
       });
@@ -233,6 +247,8 @@ function Home() {
       image_url: `/${flowerImage}.png`,
       paths: [],
       items: items,
+      note: note.trim() ? note : null,
+      bg_color: bgColor,
     });
 
     if ('error' in result) {
@@ -243,6 +259,7 @@ function Home() {
 
     const url = `${window.location.origin}?b=${result.slug}`;
     setShareUrl(url);
+    setShowNoteModal(false);
     setIsSaving(false);
   };
 
@@ -384,6 +401,68 @@ function Home() {
   }, [dragging, rotating, scaling, dragOffset, rotateStart, scaleStart, items]);
 
   const handleMouseUp = useCallback(() => {
+    setDragging(null);
+    setRotating(null);
+    setScaling(null);
+  }, []);
+
+  // Calculate canvas scale based on actual rendered size vs reference size (900px)
+  // Using ResizeObserver for reliable size tracking
+  useEffect(() => {
+    const updateCanvasScale = () => {
+      if (canvasRef.current) {
+        const width = canvasRef.current.offsetWidth;
+        setCanvasScale(width / 900);
+      }
+    };
+
+    updateCanvasScale();
+
+    // ResizeObserver is more reliable than window resize for element size changes
+    const observer = new ResizeObserver(updateCanvasScale);
+    if (canvasRef.current) {
+      observer.observe(canvasRef.current);
+    }
+
+    return () => observer.disconnect();
+  }, []);
+
+  // Touch event handlers for mobile
+  const handleTouchStart = useCallback((e: React.TouchEvent, itemId: string) => {
+    if (canvasRef.current && e.touches.length === 1) {
+      const touch = e.touches[0];
+      const item = items.find(i => i.id === itemId);
+      if (item) {
+        const rect = canvasRef.current.getBoundingClientRect();
+        const itemX = (item.x / 100) * rect.width;
+        const itemY = (item.y / 100) * rect.height;
+        setDragOffset({
+          x: touch.clientX - rect.left - itemX,
+          y: touch.clientY - rect.top - itemY,
+        });
+        setDragging(itemId);
+        setHasDragged(false);
+      }
+    }
+  }, [items]);
+
+  const handleTouchMove = useCallback((e: React.TouchEvent) => {
+    if (dragging && canvasRef.current && e.touches.length === 1) {
+      const touch = e.touches[0];
+      setHasDragged(true);
+      const rect = canvasRef.current.getBoundingClientRect();
+      const x = ((touch.clientX - rect.left - dragOffset.x) / rect.width) * 100;
+      const y = ((touch.clientY - rect.top - dragOffset.y) / rect.height) * 100;
+
+      setItems(items.map(item =>
+        item.id === dragging
+          ? { ...item, x: Math.max(5, Math.min(95, x)), y: Math.max(5, Math.min(95, y)) }
+          : item
+      ));
+    }
+  }, [dragging, dragOffset, items]);
+
+  const handleTouchEnd = useCallback(() => {
     setDragging(null);
     setRotating(null);
     setScaling(null);
@@ -584,51 +663,92 @@ function Home() {
       onMouseMove={handleMouseMove}
       onMouseUp={handleMouseUp}
       onMouseLeave={handleMouseUp}
+      onTouchMove={handleTouchMove}
+      onTouchEnd={handleTouchEnd}
     >
-      {/* Canvas area */}
-      <div
-        ref={canvasRef}
-        className="absolute inset-0"
-        onDragOver={(e) => e.preventDefault()}
-        onDrop={(e) => {
-          e.preventDefault();
-          const data = e.dataTransfer.getData('application/json');
-          if (data && canvasRef.current) {
-            const { type, mediaId } = JSON.parse(data);
-            const rect = canvasRef.current.getBoundingClientRect();
-            const x = ((e.clientX - rect.left) / rect.width) * 100;
-            const y = ((e.clientY - rect.top) / rect.height) * 100;
-            const newItem: MediaItem = {
-              id: crypto.randomUUID(),
-              type,
-              mediaId,
-              x: Math.max(5, Math.min(95, x)),
-              y: Math.max(5, Math.min(95, y)),
-              rotation: 0,
-              scale: 0.8,
-            };
-            setItems(prev => [...prev, newItem]);
-          }
-        }}
-      >
-        {/* Flowers background */}
+      {/* Canvas area - centered, always maintains 3:4 aspect ratio */}
+      <div className="absolute inset-0 flex items-center justify-center overflow-hidden p-4">
         <div
-          className="absolute inset-0 flex items-center justify-center cursor-pointer"
-          onClick={() => !isViewingShared && handlePaste()}
+          ref={canvasRef}
+          className="relative w-full max-w-[900px]"
+          style={{
+            aspectRatio: '3/4',
+            maxHeight: 'calc(100vh - 2rem)',
+          }}
+          onDragOver={(e) => e.preventDefault()}
+          onDrop={(e) => {
+            e.preventDefault();
+            const data = e.dataTransfer.getData('application/json');
+            if (data && canvasRef.current) {
+              const { type, mediaId } = JSON.parse(data);
+              const rect = canvasRef.current.getBoundingClientRect();
+              const x = ((e.clientX - rect.left) / rect.width) * 100;
+              const y = ((e.clientY - rect.top) / rect.height) * 100;
+              const newItem: MediaItem = {
+                id: crypto.randomUUID(),
+                type,
+                mediaId,
+                x: Math.max(5, Math.min(95, x)),
+                y: Math.max(5, Math.min(95, y)),
+                rotation: 0,
+                scale: 0.8,
+              };
+              setItems(prev => [...prev, newItem]);
+            }
+          }}
         >
-          <Image
-            src={`/${flowerImage}.png`}
-            alt="Flower bouquet"
-            width={900}
-            height={1200}
-            className="object-contain max-h-[95vh] select-none"
-            draggable={false}
-            priority
-          />
-        </div>
+          {/* Flowers background */}
+          <div
+            className={`absolute inset-0 ${isViewingShared && savedNote && !showUnwrappedNote ? 'cursor-pointer' : ''}`}
+            onClick={() => {
+              if (isViewingShared && savedNote && !isUnwrapping && !showUnwrappedNote) {
+                setIsUnwrapping(true);
+                // After animation completes, show the note modal
+                setTimeout(() => {
+                  setIsUnwrapping(false);
+                  setShowUnwrappedNote(true);
+                }, 1500);
+              }
+            }}
+          >
+            {/* Wrap overlay - shown when viewing shared and hasn't been unwrapped yet */}
+            {isViewingShared && savedNote && !showUnwrappedNote && (
+              <div
+                className={`absolute inset-0 z-10 flex items-center justify-center transition-all duration-1000 ${
+                  isUnwrapping ? 'opacity-0 scale-150' : 'opacity-100 scale-100'
+                }`}
+              >
+                <Image
+                  src="/wrap2.png"
+                  alt="Gift wrap"
+                  fill
+                  className="object-contain select-none"
+                  draggable={false}
+                  priority
+                />
+                {!isUnwrapping && (
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <div className="bg-white/80 backdrop-blur-sm rounded-full px-6 py-3 shadow-lg animate-pulse">
+                      <span className="text-black font-medium">Tap to unwrap</span>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+            <Image
+              src={`/${flowerImage}.png`}
+              alt="Flower bouquet"
+              fill
+              className={`object-contain select-none transition-all duration-1000 ${
+                isViewingShared && savedNote && !showUnwrappedNote && !isUnwrapping ? 'opacity-0' : 'opacity-100'
+              }`}
+              draggable={false}
+              priority
+            />
+          </div>
 
-        {/* Media items */}
-        {items.map((item) => (
+          {/* Media items - scaled based on canvas size */}
+          {items.map((item) => (
           <div
             key={item.id}
             className={`absolute transition-shadow ${
@@ -641,12 +761,16 @@ function Home() {
             style={{
               left: `${item.x}%`,
               top: `${item.y}%`,
-              transform: `translate(-50%, -50%) rotate(${item.rotation}deg) scale(${item.scale})`,
+              transform: `translate(-50%, -50%) rotate(${item.rotation}deg) scale(${item.scale * canvasScale})`,
             }}
             onMouseDown={(e) => {
               if (isViewingShared) return;
               e.preventDefault();
               handleMouseDown(e, item.id);
+            }}
+            onTouchStart={(e) => {
+              if (isViewingShared) return;
+              handleTouchStart(e, item.id);
             }}
           >
             <div className="relative group">
@@ -663,14 +787,14 @@ function Home() {
                       e.stopPropagation();
                       deleteItem(item.id);
                     }}
-                    className="absolute -top-2 -right-2 w-8 h-8 rounded-full bg-[#E6E6E6]/50 backdrop-blur-md border-2 border-[#EAEAEA] hover:bg-white/90 text-black flex items-center justify-center shadow-lg opacity-0 group-hover:opacity-100 transition-opacity"
+                    className="absolute -top-2 -right-2 w-8 h-8 rounded-full bg-[#E6E6E6]/50 backdrop-blur-md border-2 border-[#EAEAEA] hover:bg-white/90 text-black flex items-center justify-center shadow-lg md:opacity-0 md:group-hover:opacity-100 transition-opacity"
                     title="Remove"
                   >
                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                     </svg>
                   </button>
-                  {/* Scale handle */}
+                  {/* Scale handle - hidden on mobile */}
                   <div
                     onMouseDown={(e) => {
                       e.stopPropagation();
@@ -686,7 +810,7 @@ function Home() {
                       }
                       setScaling(item.id);
                     }}
-                    className="absolute -bottom-2 -right-2 w-8 h-8 rounded-full bg-[#E6E6E6]/50 backdrop-blur-md border-2 border-[#EAEAEA] hover:bg-white/90 text-black flex items-center justify-center shadow-lg opacity-0 group-hover:opacity-100 transition-opacity cursor-nwse-resize"
+                    className="absolute -bottom-2 -right-2 w-8 h-8 rounded-full bg-[#E6E6E6]/50 backdrop-blur-md border-2 border-[#EAEAEA] hover:bg-white/90 text-black flex items-center justify-center shadow-lg hidden md:flex md:opacity-0 md:group-hover:opacity-100 transition-opacity cursor-nwse-resize"
                     title="Scale"
                   >
                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -698,17 +822,19 @@ function Home() {
             </div>
           </div>
         ))}
+        </div>
       </div>
 
       {/* Header */}
-      <div className="fixed top-6 left-6 z-40">
+      <a href="/" className="fixed top-6 left-6 z-40 cursor-pointer">
         <span className={`text-2xl text-black ${cecilia.className}`}>Link Bouquet</span>
-      </div>
+        {isViewingShared && <p className="text-[#E6E6E6] text-xs">(curate and gift your own)</p>}
+      </a>
 
       {/* Turtle top right */}
-      <div className="fixed top-6 right-6 z-40">
+      <div className="fixed top-4 right-4 md:top-6 md:right-6 z-40">
         <a href="https://dangertesting.com" target="_blank" rel="noopener noreferrer" className="cursor-pointer">
-          <Image src="/turtle.svg" alt="Turtle" width={80} height={80} />
+          <Image src="/turtle.svg" alt="Turtle" width={80} height={80} className="w-10 h-10 md:w-20 md:h-20" />
         </a>
       </div>
 
@@ -805,113 +931,111 @@ function Home() {
 
       {/* Bottom toolbar - only show when editing */}
       {!isViewingShared && !shareUrl && (
-        <div className="fixed bottom-6 right-6 flex flex-col gap-3 z-40 w-40">
-          {/* Flower toggle button */}
-          <button
-            onClick={() => setFlowerImage(flowerImage === 'flowers' ? 'flowers2' : 'flowers')}
-            className="w-full rounded-lg bg-[#E6E6E6]/50 backdrop-blur-md transition-all overflow-hidden cursor-pointer hover:bg-white/90 relative group"
-          >
-            <Image
-              src={`/${flowerImage === 'flowers' ? 'flowers2' : 'flowers'}.png`}
-              alt="Switch flowers"
-              width={160}
-              height={200}
-              className="w-full h-auto"
-            />
-            <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-              <span className="text-white font-medium text-center">
-                Change<br />Flower
-              </span>
-            </div>
-          </button>
+        <div className="fixed bottom-6 left-4 right-4 md:left-auto md:right-6 flex justify-between md:justify-start gap-3 z-40 md:flex-col md:w-40">
+          {/* Left column on mobile / Top on desktop: Flower toggle + colors */}
+          <div className="flex flex-col gap-2 items-center justify-end md:justify-start">
+            {/* Flower toggle button */}
+            <button
+              onClick={() => setFlowerImage(flowerImage === 'flowers' ? 'flowers2' : 'flowers')}
+              className="w-20 md:w-full rounded-lg bg-[#E6E6E6]/50 backdrop-blur-md transition-all overflow-hidden cursor-pointer relative group"
+            >
+              <Image
+                src={`/${flowerImage === 'flowers' ? 'flowers2' : 'flowers'}.png`}
+                alt="Switch flowers"
+                width={160}
+                height={200}
+                className="w-full h-auto"
+              />
+              <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center bg-black/40">
+                <span className="text-white font-medium text-center text-xs md:text-base">
+                  Change<span className="hidden md:inline"><br />Flower</span>
+                </span>
+              </div>
+            </button>
 
-          {/* Background color picker squares */}
-          <div className="flex justify-center gap-3 py-2">
-            {/* Blue square */}
-            <button
-              onClick={() => setBgColor('#93C5FD')}
-              className="w-10 h-10 rounded-lg bg-[#93C5FD] border-2 border-[#E6E6E6] hover:scale-110 transition-transform cursor-pointer"
-              title="Blue background"
-            />
-            {/* Pink square */}
-            <button
-              onClick={() => setBgColor('#FCA5A5')}
-              className="w-10 h-10 rounded-lg bg-[#FCA5A5] border-2 border-[#E6E6E6] hover:scale-110 transition-transform cursor-pointer"
-              title="Pink background"
-            />
-            {/* Custom color picker square */}
-            <div className="relative w-10 h-10">
-              <input
-                type="color"
-                value={bgColor}
-                onChange={(e) => setBgColor(e.target.value)}
-                className="absolute inset-0 w-full h-full rounded-lg cursor-pointer opacity-0"
-                title="Custom color"
+            {/* Background color picker squares */}
+            <div className="flex justify-center gap-2 md:gap-3 md:py-2">
+              {/* Pink square */}
+              <button
+                onClick={() => setBgColor('#F77196')}
+                className="w-6 h-6 md:w-10 md:h-10 rounded md:rounded-lg bg-[#F77196] border-2 border-[#E6E6E6] hover:scale-110 transition-transform cursor-pointer"
+                title="Pink background"
               />
-              <div
-                className="w-10 h-10 rounded-lg border-2 border-[#E6E6E6] pointer-events-none"
-                style={{ background: `conic-gradient(from 0deg, red, yellow, lime, aqua, blue, magenta, red)` }}
+              {/* Red square */}
+              <button
+                onClick={() => setBgColor('#C2021B')}
+                className="w-6 h-6 md:w-10 md:h-10 rounded md:rounded-lg bg-[#C2021B] border-2 border-[#E6E6E6] hover:scale-110 transition-transform cursor-pointer"
+                title="Red background"
               />
+              {/* Custom color picker square */}
+              <div className="relative w-6 h-6 md:w-10 md:h-10">
+                <input
+                  type="color"
+                  value={bgColor}
+                  onChange={(e) => setBgColor(e.target.value)}
+                  className="absolute inset-0 w-full h-full rounded md:rounded-lg cursor-pointer opacity-0"
+                  title="Custom color"
+                />
+                <div
+                  className="w-6 h-6 md:w-10 md:h-10 rounded md:rounded-lg border-2 border-[#E6E6E6] pointer-events-none"
+                  style={{ background: `conic-gradient(from 0deg, red, yellow, lime, aqua, blue, magenta, red)` }}
+                />
+              </div>
             </div>
           </div>
 
-          {/* Add link button */}
-          <button
-            onClick={handlePaste}
-            className="h-12 w-full rounded-lg bg-[#E6E6E6]/50 backdrop-blur-md transition-all flex items-center justify-center text-black hover:bg-white/90 cursor-pointer"
-          >
-            <span className="font-medium">Add Link</span>
-          </button>
-
-          {/* Arrange button */}
-          {/* {items.length > 1 && (
+          {/* Right column on mobile / Bottom on desktop: Add Link + Save & Share */}
+          <div className="flex flex-col gap-2 md:gap-3 w-28 md:w-full md:flex-none justify-end md:justify-start">
+            {/* Add link button */}
             <button
-              onClick={arrangeItems}
-              className="h-12 w-full rounded-lg bg-[#E6E6E6]/50 backdrop-blur-md border-2 border-[#EAEAEA] transition-all flex items-center justify-center text-black hover:bg-white/90"
+              onClick={() => setShowInput(true)}
+              className="h-12 w-full rounded-lg bg-[#E6E6E6]/50 backdrop-blur-md transition-all flex items-center justify-center text-black cursor-pointer"
             >
-              <span className="font-medium">Arrange</span>
+              <span className="font-medium text-sm md:text-base">Add Link</span>
             </button>
-          )} */}
 
-          {/* Save button */}
-          {items.length > 0 && (
+            {/* Save button */}
             <button
-              onClick={handleSave}
-              disabled={isSaving}
-              className="h-12 w-full rounded-lg bg-black hover:bg-gray-800 transition-all flex items-center justify-center text-white disabled:opacity-50 cursor-pointer"
+              onClick={() => setShowNoteModal(true)}
+              disabled={items.length === 0}
+              className="h-12 w-full rounded-lg bg-[#FF19D5] hover:bg-[#E015BF] transition-all flex items-center justify-center text-black disabled:opacity-50 cursor-pointer"
             >
-              <span className="font-medium">{isSaving ? 'Saving...' : 'Save & Share'}</span>
+              <span className="font-medium text-sm md:text-base">Save & Share</span>
             </button>
-          )}
-
-                  </div>
+          </div>
+        </div>
       )}
 
       {/* Share URL display */}
       {shareUrl && (
         <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-40">
-          <div className="bg-white rounded-xl shadow-xl p-5 flex flex-col gap-3 min-w-[320px]">
-            <div className="flex items-center gap-2 text-black">
-              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-              </svg>
-              <span className="font-semibold text-lg">Saved!</span>
-            </div>
-            <p className="text-gray-600">Share this link with someone special:</p>
+          <div className="bg-white/50 backdrop-blur-xl rounded-xl shadow-xl p-5 flex flex-col gap-3 min-w-[320px]">
+            <span className="font-semibold text-lg text-black">Curated</span>
+            <p className="text-black">Share this link with someone special:</p>
             <div className="flex gap-2">
               <input
                 type="text"
                 value={shareUrl}
                 readOnly
-                className="flex-1 px-4 py-2 bg-gray-100 rounded-lg text-gray-700 text-sm"
+                className="flex-1 px-4 py-2 bg-black/10 rounded-lg text-black text-sm border-none"
               />
               <button
-                onClick={copyShareUrl}
-                className={`px-4 py-2 rounded-lg transition-colors font-medium ${
-                  copied ? 'bg-gray-600 text-white' : 'bg-black hover:bg-gray-800 text-white'
+                onClick={async () => {
+                  if (navigator.share && /iPhone|iPad|iPod|Android/i.test(navigator.userAgent)) {
+                    try {
+                      await navigator.share({ url: shareUrl || '' });
+                    } catch (e) {
+                      copyShareUrl();
+                    }
+                  } else {
+                    copyShareUrl();
+                  }
+                }}
+                className={`px-4 py-2 rounded-lg transition-colors font-medium cursor-pointer ${
+                  copied ? 'bg-[#FF19D5]/60 text-black' : 'bg-[#FF19D5]/80 text-black'
                 }`}
               >
-                {copied ? 'Copied!' : 'Copy'}
+                {copied ? 'Copied!' : 'Share'}
               </button>
             </div>
             <button
@@ -924,42 +1048,81 @@ function Home() {
         </div>
       )}
 
-      {/* Create your own button - when viewing shared */}
-      {isViewingShared && (
-        <div className="fixed bottom-6 left-6 z-40">
-          <button
-            onClick={() => window.location.href = window.location.origin}
-            className="h-12 px-6 rounded-lg bg-[#E6E6E6]/50 backdrop-blur-md hover:bg-white/90 transition-all flex items-center gap-2 text-black"
+      {/* Note modal - shown after unwrapping animation */}
+      {isViewingShared && showUnwrappedNote && savedNote && (
+        <div
+          className="fixed inset-0 bg-black/10 backdrop-blur-md z-50 flex items-center justify-center p-4"
+          onClick={() => setShowUnwrappedNote(false)}
+        >
+          <div
+            className="bg-white/80 backdrop-blur-xl rounded-2xl px-8 py-6 max-w-md w-full shadow-xl animate-fade-in"
+            onClick={(e) => e.stopPropagation()}
           >
-            <span className="font-medium">Create Your Own</span>
-          </button>
+            <p className="text-black whitespace-pre-wrap mb-4">{savedNote}</p>
+            <button
+              onClick={() => setShowUnwrappedNote(false)}
+              className="w-full px-4 py-3 bg-[#FF19D5]/80 text-black rounded-lg font-medium cursor-pointer"
+            >
+              View Bouquet
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Note Modal for Save */}
+      {showNoteModal && (
+        <div className="fixed inset-0 bg-black/10 backdrop-blur-md z-50 flex items-center justify-center p-4">
+          <div className="bg-white/50 backdrop-blur-xl p-6 rounded-2xl shadow-xl max-w-md w-full">
+            <textarea
+              value={note}
+              onChange={(e) => setNote(e.target.value)}
+              placeholder={"Dear,\n\nHappy Valentine's Day!\nI love you like the internet!\n\nSincerely,"}
+              className="w-full px-4 py-3 rounded-xl border-none focus:outline-none mb-4 resize-none h-48 bg-transparent"
+              autoFocus
+            />
+            <div className="flex gap-3">
+              <button
+                type="button"
+                onClick={() => setShowNoteModal(false)}
+                className="flex-1 px-4 py-3 bg-[#E6E6E6]/50 backdrop-blur-md text-black rounded-lg transition-colors font-medium cursor-pointer"
+              >
+                Back
+              </button>
+              <button
+                onClick={handleSave}
+                disabled={isSaving}
+                className="flex-1 px-4 py-3 bg-[#FF19D5]/80 backdrop-blur-md text-black rounded-lg transition-colors font-medium disabled:opacity-50 cursor-pointer"
+              >
+                {isSaving ? 'Saving...' : 'Save & Share'}
+              </button>
+            </div>
+          </div>
         </div>
       )}
 
       {/* URL Input Modal */}
       {showInput && (
-        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-          <form onSubmit={handleInputSubmit} className="bg-white p-6 rounded-2xl shadow-xl max-w-md w-full">
-            <h2 className="text-xl font-bold text-gray-800 mb-2">Add a link</h2>
-            <p className="text-gray-500 text-sm mb-4">Paste an Instagram, YouTube, or Spotify URL</p>
+        <div className="fixed inset-0 bg-black/10 backdrop-blur-md z-50 flex items-center justify-center p-4">
+          <form onSubmit={handleInputSubmit} className="bg-white/50 backdrop-blur-xl p-6 rounded-2xl shadow-xl max-w-md w-full">
+            <p className="text-black text-sm mb-4">Paste a link here or use ⌘V anywhere on the canvas. Works with YouTube, Spotify, TikTok, Substack & more.</p>
             <input
               type="text"
               name="url"
               placeholder="https://..."
-              className="w-full px-4 py-3 rounded-xl border-2 border-gray-200 focus:border-black focus:outline-none mb-4"
+              className="w-full px-4 py-3 rounded-xl border-none bg-black/10 focus:outline-none mb-4"
               autoFocus
             />
             <div className="flex gap-3">
               <button
                 type="button"
                 onClick={() => setShowInput(false)}
-                className="flex-1 px-4 py-3 bg-gray-100 text-gray-700 rounded-xl hover:bg-gray-200 transition-colors font-medium"
+                className="flex-1 px-4 py-3 bg-[#E6E6E6]/50 backdrop-blur-md text-black rounded-lg transition-colors font-medium cursor-pointer"
               >
-                Cancel
+                Back
               </button>
               <button
                 type="submit"
-                className="flex-1 px-4 py-3 bg-black text-white rounded-xl hover:bg-gray-800 transition-colors font-medium"
+                className="flex-1 px-4 py-3 bg-[#FF19D5]/80 backdrop-blur-md text-black rounded-lg transition-colors font-medium cursor-pointer"
               >
                 Add
               </button>
@@ -971,7 +1134,7 @@ function Home() {
       {/* Full Screen Modal for viewing embeds */}
       {showModal && (
         <div
-          className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4"
+          className="fixed inset-0 bg-black/10 backdrop-blur-md z-50 flex items-center justify-center p-4"
           onClick={() => setShowModal(null)}
         >
           <div

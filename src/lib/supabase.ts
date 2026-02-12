@@ -15,7 +15,7 @@ export interface Point {
   y: number
 }
 
-export type MediaType = 'instagram' | 'youtube' | 'spotify' | 'substack' | 'letterboxd' | 'twitter'
+export type MediaType = 'instagram' | 'youtube' | 'spotify' | 'substack' | 'letterboxd' | 'twitter' | 'tiktok'
 
 export interface MediaItem {
   id: string
@@ -31,6 +31,8 @@ export interface BouquetData {
   image_url: string | null
   paths: Point[][]
   items: MediaItem[]
+  note?: string | null
+  bg_color?: string | null
 }
 
 // Generate a short, readable slug for sharing
@@ -58,6 +60,8 @@ export async function saveBouquet(data: BouquetData): Promise<{ slug: string } |
       image_url: data.image_url,
       paths: data.paths,
       items: data.items,
+      note: data.note || null,
+      bg_color: data.bg_color || '#ffffff',
     })
 
   if (error) {
@@ -79,7 +83,7 @@ export async function loadBouquet(slug: string): Promise<BouquetData | { error: 
 
   const { data, error } = await supabase
     .from('bouquets')
-    .select('image_url, paths, items')
+    .select('image_url, paths, items, note, bg_color')
     .eq('slug', slug)
     .single()
 
@@ -91,5 +95,7 @@ export async function loadBouquet(slug: string): Promise<BouquetData | { error: 
     image_url: data.image_url as string | null,
     paths: data.paths as Point[][],
     items: data.items as MediaItem[],
+    note: data.note as string | null,
+    bg_color: data.bg_color as string | null,
   }
 }
