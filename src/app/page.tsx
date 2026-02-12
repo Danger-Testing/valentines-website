@@ -20,6 +20,46 @@ import {
   LinkEmbed,
 } from "@/components/embeds";
 
+// Splash screen component
+function SplashScreen({ onComplete }: { onComplete: () => void }) {
+  const [step, setStep] = useState(1);
+
+  useEffect(() => {
+    // Step 1: Show black screen for 800ms
+    const timer1 = setTimeout(() => setStep(2), 800);
+    // Step 2: Show for 1200ms then complete
+    const timer2 = setTimeout(() => onComplete(), 2000);
+
+    return () => {
+      clearTimeout(timer1);
+      clearTimeout(timer2);
+    };
+  }, [onComplete]);
+
+  return (
+    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black transition-opacity duration-500">
+      {step === 1 && (
+        <div className="animate-fade-in" />
+      )}
+      {step === 2 && (
+        <div className="animate-fade-in flex flex-col items-center gap-6">
+          <Image
+            src="/logo.png"
+            alt="Link Bouquet"
+            width={400}
+            height={100}
+            className="h-20 md:h-28 w-auto invert"
+            priority
+          />
+          <p className="text-white/60 text-sm tracking-widest uppercase">
+            Curate your love
+          </p>
+        </div>
+      )}
+    </div>
+  );
+}
+
 function LoadingFallback() {
   return (
     <div className="min-h-screen bg-white flex flex-col items-center justify-center gap-4">
@@ -30,10 +70,27 @@ function LoadingFallback() {
 }
 
 export default function Page() {
+  const [showSplash, setShowSplash] = useState(true);
+
+  // Check if we should skip splash (returning visitor in same session)
+  useEffect(() => {
+    if (sessionStorage.getItem("splashShown")) {
+      setShowSplash(false);
+    }
+  }, []);
+
+  const handleSplashComplete = useCallback(() => {
+    sessionStorage.setItem("splashShown", "true");
+    setShowSplash(false);
+  }, []);
+
   return (
-    <Suspense fallback={<LoadingFallback />}>
-      <Home />
-    </Suspense>
+    <>
+      {showSplash && <SplashScreen onComplete={handleSplashComplete} />}
+      <Suspense fallback={<LoadingFallback />}>
+        <Home />
+      </Suspense>
+    </>
   );
 }
 
@@ -207,8 +264,8 @@ function Home() {
     setShowNoteModal(false);
     setIsSaving(false);
 
-    // Navigate to the shared page
-    window.location.href = `?b=${result.slug}`;
+    // Navigate to the shared page with created flag
+    window.location.href = `?b=${result.slug}&created=1`;
   };
 
   // Copy share URL to clipboard
@@ -868,9 +925,9 @@ function Home() {
         </div>
       )}
 
-      {/* Note display top right - only on sharing page */}
+      {/* Note display bottom right - only on sharing page */}
       {isViewingShared && savedNote && (
-        <div className="fixed top-4 right-4 md:top-6 md:right-6 z-40 max-w-xs md:max-w-sm">
+        <div className="fixed bottom-4 right-4 md:bottom-6 md:right-6 z-40 max-w-xs md:max-w-sm">
           <div className="bg-white p-4">
             <p className="text-black text-sm whitespace-pre-wrap">
               {savedNote}
@@ -1112,8 +1169,8 @@ function Home() {
         </div>
       )}
 
-      {/* Share URL display - show on shared page */}
-      {isViewingShared && (
+      {/* Share URL display - only show when creator just saved */}
+      {isViewingShared && searchParams.get("created") === "1" && (
         <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-40">
           <div className="bg-white/50 backdrop-blur-xl rounded-xl shadow-xl p-5 flex flex-col gap-3 min-w-[320px]">
             <span className="font-semibold text-lg text-black">Curated</span>
