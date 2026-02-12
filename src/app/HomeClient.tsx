@@ -146,9 +146,45 @@ const CURATED_BUCKETS = [
     ],
   },
   {
-    name: "Peony",
-    pfp: "/pfp.jpg",
-    media: [],
+    name: "Anna",
+    pfp: "/anna.JPG",
+    media: [
+      {
+        type: "letterboxd" as MediaType,
+        mediaId: "https://letterboxd.com/film/wild-at-heart/",
+        label: "Wild at Heart",
+      },
+      {
+        type: "substack" as MediaType,
+        mediaId: "https://chiasm.substack.com/p/so-much-longing-in-so-little-space",
+        label: "So Much Longing in So Little Space",
+      },
+      {
+        type: "youtube" as MediaType,
+        mediaId: "mHQmnumnNgo",
+        label: "YouTube",
+      },
+      {
+        type: "youtube" as MediaType,
+        mediaId: "nLCY5Wl6ZMA",
+        label: "YouTube",
+      },
+      {
+        type: "spotify" as MediaType,
+        mediaId: "playlist/3vDFi3Ggjv9xoLLbbSWvQR",
+        label: "Playlist",
+      },
+      {
+        type: "youtube" as MediaType,
+        mediaId: "npol_Y-expQ",
+        label: "YouTube",
+      },
+      {
+        type: "spotify" as MediaType,
+        mediaId: "track/1APu9lSrXWUarvP61myILk",
+        label: "Track",
+      },
+    ],
   },
   {
     name: "Lily",
