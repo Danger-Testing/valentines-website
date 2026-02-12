@@ -841,7 +841,7 @@ function Home() {
 
       {/* Header */}
       <a href="/" className="fixed top-6 left-6 z-40 cursor-pointer">
-        <span className="text-xl md:text-2xl font-medium" style={{ fontFamily: 'Helvetica, Arial, sans-serif', color: '#C2021B' }}>
+        <span className="text-xl md:text-2xl font-bold" style={{ fontFamily: 'Helvetica, Arial, sans-serif', color: '#C2021B' }}>
           link bouquet
         </span>
       </a>
