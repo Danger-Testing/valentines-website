@@ -1296,10 +1296,10 @@ function Home() {
       {/* Left Sidebar with curated media */}
       {!isViewingShared && (
         <div
-          className={`fixed left-0 top-0 h-full z-30 transition-transform duration-300 ${sidebarOpen ? "translate-x-0" : "-translate-x-[280px]"}`}
+          className={`fixed left-0 top-1/2 -translate-y-1/2 h-[60%] z-30 transition-transform duration-300 ${sidebarOpen ? "translate-x-0" : "-translate-x-[280px]"}`}
         >
-          <div className="w-[280px] h-full bg-[#E6E6E6]/50 backdrop-blur-md pt-20 pb-6 flex flex-col relative">
-            <div className="flex-1 overflow-y-auto px-4 space-y-3">
+          <div className="w-[280px] h-full bg-[#E6E6E6]/50 backdrop-blur-md rounded-r-2xl py-6 flex flex-col relative">
+            <div className="flex-1 overflow-y-auto px-4 flex flex-col justify-center space-y-3">
               {CURATED_MEDIA.map((media, index) => (
                 <div
                   key={index}
@@ -1392,19 +1392,6 @@ function Home() {
                     </span>
                   </div>
                 </div>
-              ))}
-            </div>
-            {/* Profile pictures */}
-            <div className="flex flex-wrap gap-2 justify-center px-4 pt-4">
-              {[...Array(5)].map((_, i) => (
-                <Image
-                  key={i}
-                  src="/pfp.jpg"
-                  alt="Profile"
-                  width={40}
-                  height={40}
-                  className="w-10 h-10 rounded-full object-cover"
-                />
               ))}
             </div>
           </div>
