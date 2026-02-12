@@ -854,7 +854,7 @@ function Home() {
         </div>
       )}
 
-      {/* Link image bottom left - hide on sharing page */}
+      {/* Link image and Spotify embed bottom left - hide on sharing page */}
       {!isViewingShared && (
         <div className="fixed bottom-4 left-4 md:bottom-6 md:left-6 z-40 hidden md:block">
           <Image
@@ -864,9 +864,8 @@ function Home() {
             height={400}
             className="absolute -bottom-14 -left-10 w-72 h-72 object-contain z-10 pointer-events-none"
           />
-          {/* Spotify embed temporarily hidden
           <div
-            className="cursor-grab active:cursor-grabbing"
+            className="cursor-grab active:cursor-grabbing bg-[#E6E6E6]/50 backdrop-blur-md rounded-xl p-2"
             draggable
             onDragStart={(e) => {
               e.dataTransfer.setData(
@@ -882,12 +881,11 @@ function Home() {
               src="https://open.spotify.com/embed/track/32q1h0jij3ePpp47ShIqVy?utm_source=generator&theme=0"
               width="300"
               height="80"
-              className="rounded-xl pointer-events-none"
+              className="rounded-lg pointer-events-none"
               allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
               loading="lazy"
             />
           </div>
-          */}
         </div>
       )}
 
