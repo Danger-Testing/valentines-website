@@ -862,7 +862,7 @@ function Home() {
             alt=""
             width={400}
             height={400}
-            className="w-52 h-52 object-contain"
+            className="w-36 h-36 object-contain"
           />
         </div>
       )}
