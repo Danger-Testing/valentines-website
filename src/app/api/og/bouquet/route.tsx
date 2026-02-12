@@ -8,8 +8,8 @@ export async function GET(request: NextRequest) {
   const from = searchParams.get('from') || '';
   const to = searchParams.get('to') || '';
 
-  // Fetch the dynamicog.png image
-  const imageUrl = new URL('/dynamicog.png', request.url).toString();
+  // Fetch the flowerhand.png image
+  const imageUrl = new URL('/flowerhand.png', request.url).toString();
 
   return new ImageResponse(
     (
@@ -18,63 +18,76 @@ export async function GET(request: NextRequest) {
           width: '100%',
           height: '100%',
           display: 'flex',
-          flexDirection: 'column',
           alignItems: 'center',
           justifyContent: 'center',
           backgroundColor: '#ffffff',
-          fontFamily: 'system-ui, sans-serif',
+          fontFamily: 'Georgia, serif',
+          position: 'relative',
         }}
       >
-        {/* From / To with image */}
+        {/* Left half - From name */}
         <div
           style={{
+            position: 'absolute',
+            left: 0,
+            top: 0,
+            width: '45%',
+            height: '100%',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            gap: '40px',
           }}
         >
           <span
             style={{
-              fontSize: '64px',
+              fontSize: '72px',
               fontWeight: 400,
-              color: '#000000',
+              color: '#EA1F16',
+              textTransform: 'lowercase',
             }}
           >
-            {from || 'Someone'}
-          </span>
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src={imageUrl}
-            alt=""
-            width={200}
-            height={200}
-            style={{
-              objectFit: 'contain',
-            }}
-          />
-          <span
-            style={{
-              fontSize: '64px',
-              fontWeight: 400,
-              color: '#000000',
-            }}
-          >
-            {to || 'You'}
+            {from || 'someone'}
           </span>
         </div>
-        {/* Logo at bottom */}
-        <span
+        {/* Center - Flowerhand image */}
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src={imageUrl}
+          alt=""
+          width={420}
+          height={420}
           style={{
-            fontSize: '32px',
-            fontWeight: 500,
-            color: '#C2021B',
-            marginTop: '60px',
-            fontFamily: 'Helvetica, Arial, sans-serif',
+            objectFit: 'contain',
+            position: 'absolute',
+            left: '50%',
+            top: '50%',
+            transform: 'translate(-50%, -50%)',
+          }}
+        />
+        {/* Right half - To name */}
+        <div
+          style={{
+            position: 'absolute',
+            right: 0,
+            top: 0,
+            width: '45%',
+            height: '100%',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
           }}
         >
-          link bouquet
-        </span>
+          <span
+            style={{
+              fontSize: '72px',
+              fontWeight: 400,
+              color: '#EA1F16',
+              textTransform: 'lowercase',
+            }}
+          >
+            {to || 'you'}
+          </span>
+        </div>
       </div>
     ),
     {
