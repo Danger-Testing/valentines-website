@@ -840,17 +840,14 @@ function Home() {
       </div>
 
       {/* Header */}
-      <a href="/" className="fixed top-6 left-6 z-40 cursor-pointer flex items-center gap-2">
+      <a href="/" className="fixed top-6 left-6 z-40 cursor-pointer">
         <Image
-          src="/link.png"
-          alt=""
-          width={100}
-          height={100}
-          className="w-16 h-16 md:w-20 md:h-20 object-contain"
+          src="/logo.png"
+          alt="Link Bouquet"
+          width={350}
+          height={88}
+          className="h-10 md:h-14 w-auto"
         />
-        <span className="text-2xl md:text-3xl font-medium" style={{ fontFamily: 'Helvetica, Arial, sans-serif', color: '#C2021B' }}>
-          link bouquet
-        </span>
       </a>
 
       {/* Turtle top right */}
