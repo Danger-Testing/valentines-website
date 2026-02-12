@@ -15,7 +15,7 @@ export interface Point {
   y: number
 }
 
-export type MediaType = 'instagram' | 'youtube' | 'spotify' | 'substack'
+export type MediaType = 'instagram' | 'youtube' | 'spotify' | 'substack' | 'letterboxd' | 'twitter'
 
 export interface MediaItem {
   id: string

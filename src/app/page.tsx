@@ -97,6 +97,89 @@ function SubstackThumbnail({ url, isModal }: { url: string; isModal: boolean }) 
   );
 }
 
+// Letterboxd thumbnail component that fetches movie poster
+function LetterboxdThumbnail({ url, isModal }: { url: string; isModal: boolean }) {
+  const [poster, setPoster] = useState<string | null>(null);
+  const [title, setTitle] = useState<string>('');
+  const [year, setYear] = useState<string | null>(null);
+  const [rating, setRating] = useState<string | null>(null);
+
+  useEffect(() => {
+    // Extract film name from URL for initial display
+    const filmMatch = url.match(/letterboxd\.com\/film\/([a-zA-Z0-9-]+)/);
+    if (filmMatch) {
+      setTitle(filmMatch[1].replace(/-/g, ' '));
+    }
+
+    fetch(`/api/letterboxd?url=${encodeURIComponent(url)}`)
+      .then(res => res.json())
+      .then(data => {
+        if (data.image) setPoster(data.image);
+        if (data.title) setTitle(data.title);
+        if (data.year) setYear(data.year);
+        if (data.rating) setRating(data.rating);
+      })
+      .catch(() => {});
+  }, [url]);
+
+  if (isModal) {
+    return (
+      <a href={url} target="_blank" rel="noopener noreferrer" className="block">
+        <div className="w-[300px] bg-[#14181c] rounded-xl overflow-hidden shadow-lg">
+          {poster ? (
+            <img src={poster} alt={title} className="w-full h-[450px] object-cover" />
+          ) : (
+            <div className="w-full h-[450px] bg-[#2c3440] flex items-center justify-center">
+              <div className="w-20 h-20 bg-[#00e054] rounded-full flex items-center justify-center">
+                <svg className="w-10 h-10 text-[#14181c]" fill="currentColor" viewBox="0 0 500 500">
+                  <path d="M250 0C111.93 0 0 111.93 0 250s111.93 250 250 250 250-111.93 250-250S388.07 0 250 0zm0 472.73C128.52 472.73 27.27 371.48 27.27 250S128.52 27.27 250 27.27 472.73 128.52 472.73 250 371.48 472.73 250 472.73z"/>
+                  <circle cx="250" cy="250" r="110"/>
+                </svg>
+              </div>
+            </div>
+          )}
+          <div className="p-4">
+            <h3 className="text-white font-medium text-lg capitalize">{title}</h3>
+            {year && <span className="text-[#9ab] text-sm">{year}</span>}
+            {rating && (
+              <div className="flex items-center gap-1 mt-2">
+                <span className="text-[#00e054]">{'★'.repeat(Math.floor(parseFloat(rating)))}</span>
+                <span className="text-[#9ab] text-sm">{rating}/5</span>
+              </div>
+            )}
+          </div>
+        </div>
+      </a>
+    );
+  }
+
+  return (
+    <a href={url} target="_blank" rel="noopener noreferrer" className="block">
+      <div className="w-[140px] h-[210px] bg-[#14181c] rounded-xl overflow-hidden shadow-lg">
+        {poster ? (
+          <div className="relative w-full h-full">
+            <img src={poster} alt={title} className="w-full h-full object-cover pointer-events-none" />
+            <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/90 to-transparent p-2">
+              <span className="text-white text-[10px] font-medium line-clamp-2 capitalize">{title}</span>
+              {year && <span className="text-[#9ab] text-[9px] block">{year}</span>}
+            </div>
+          </div>
+        ) : (
+          <div className="w-full h-full flex flex-col items-center justify-center p-3">
+            <div className="w-10 h-10 bg-[#00e054] rounded-full flex items-center justify-center mb-2">
+              <svg className="w-5 h-5 text-[#14181c]" fill="currentColor" viewBox="0 0 500 500">
+                <path d="M250 0C111.93 0 0 111.93 0 250s111.93 250 250 250 250-111.93 250-250S388.07 0 250 0zm0 472.73C128.52 472.73 27.27 371.48 27.27 250S128.52 27.27 250 27.27 472.73 128.52 472.73 250 371.48 472.73 250 472.73z"/>
+                <circle cx="250" cy="250" r="110"/>
+              </svg>
+            </div>
+            <span className="text-white text-xs font-medium text-center capitalize line-clamp-2">{title}</span>
+          </div>
+        )}
+      </div>
+    </a>
+  );
+}
+
 function Home() {
   const searchParams = useSearchParams();
 
@@ -185,6 +268,12 @@ function Home() {
     const substackMatch = url.match(/(?:([a-zA-Z0-9-]+)\.substack\.com|www\.([a-zA-Z0-9-]+)\.[a-z]+)\/p\/([a-zA-Z0-9-]+)/);
     if (substackMatch) return { type: 'substack', id: url };
 
+    const letterboxdMatch = url.match(/letterboxd\.com\/(?:film\/([a-zA-Z0-9-]+)|([a-zA-Z0-9_]+)\/film\/([a-zA-Z0-9-]+))/);
+    if (letterboxdMatch) return { type: 'letterboxd', id: url };
+
+    const twitterMatch = url.match(/(?:twitter\.com|x\.com)\/([a-zA-Z0-9_]+)\/status\/(\d+)/);
+    if (twitterMatch) return { type: 'twitter', id: twitterMatch[2] };
+
     return null;
   };
 
@@ -198,7 +287,7 @@ function Home() {
       rotation: 0,
       scale: 0.8,
     };
-    setItems([...items, newItem]);
+    setItems(prev => [...prev, newItem]);
   };
 
   const handlePaste = async () => {
@@ -300,6 +389,26 @@ function Home() {
     setScaling(null);
   }, []);
 
+  // Listen for Cmd+V / Ctrl+V to paste link directly
+  useEffect(() => {
+    const handleKeyDown = async (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === 'v' && !isViewingShared && !showInput) {
+        try {
+          const text = await navigator.clipboard.readText();
+          const parsed = parseUrl(text);
+          if (parsed) {
+            e.preventDefault();
+            addItem(parsed.type, parsed.id);
+          }
+        } catch {
+          // Clipboard access denied, ignore
+        }
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isViewingShared, showInput]);
+
   const deleteItem = (id: string) => {
     setItems(items.filter(i => i.id !== id));
   };
@@ -393,23 +502,27 @@ function Home() {
       const embedUrl = `https://open.spotify.com/embed/${item.mediaId}?utm_source=generator&theme=0`;
       if (isModal) {
         return (
-          <iframe
-            src={embedUrl}
-            width="400"
-            height="352"
-            className="border-0 rounded-xl"
-            allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
-            loading="lazy"
-          />
+          <div className="w-[400px] h-[352px] rounded-xl overflow-hidden shadow-lg">
+            <iframe
+              src={embedUrl}
+              width="480"
+              height="352"
+              className="border-0"
+              style={{ marginRight: '-80px' }}
+              allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
+              loading="lazy"
+            />
+          </div>
         );
       }
       return (
-        <div className="w-[300px] h-[80px] rounded-xl overflow-hidden shadow-lg">
+        <div className="w-[220px] h-[80px] rounded-xl overflow-hidden shadow-lg">
           <iframe
             src={embedUrl}
-            width="300"
+            width="340"
             height="80"
             className="border-0 pointer-events-none"
+            style={{ marginRight: '-120px' }}
             allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
             loading="lazy"
           />
@@ -419,6 +532,41 @@ function Home() {
 
     if (item.type === 'substack') {
       return <SubstackThumbnail url={item.mediaId} isModal={isModal} />;
+    }
+
+    if (item.type === 'letterboxd') {
+      return <LetterboxdThumbnail url={item.mediaId} isModal={isModal} />;
+    }
+
+    if (item.type === 'twitter') {
+      // Use hideCard and clip bottom to hide stats/actions/date
+      const embedUrl = `https://platform.twitter.com/embed/Tweet.html?id=${item.mediaId}&dnt=true&hideCard=false&hideThread=true`;
+      if (isModal) {
+        return (
+          <div className="w-[550px] h-[320px] bg-white rounded-xl overflow-hidden shadow-lg">
+            <iframe
+              src={embedUrl}
+              width="550"
+              height="480"
+              className="border-0"
+              style={{ marginBottom: '-160px' }}
+              allowFullScreen
+            />
+          </div>
+        );
+      }
+      return (
+        <div className="w-[280px] h-[160px] bg-white rounded-xl overflow-hidden shadow-lg">
+          <iframe
+            src={embedUrl}
+            width="280"
+            height="320"
+            className="border-0 pointer-events-none"
+            style={{ marginBottom: '-160px' }}
+            scrolling="no"
+          />
+        </div>
+      );
     }
 
     return null;
@@ -438,7 +586,31 @@ function Home() {
       onMouseLeave={handleMouseUp}
     >
       {/* Canvas area */}
-      <div ref={canvasRef} className="absolute inset-0">
+      <div
+        ref={canvasRef}
+        className="absolute inset-0"
+        onDragOver={(e) => e.preventDefault()}
+        onDrop={(e) => {
+          e.preventDefault();
+          const data = e.dataTransfer.getData('application/json');
+          if (data && canvasRef.current) {
+            const { type, mediaId } = JSON.parse(data);
+            const rect = canvasRef.current.getBoundingClientRect();
+            const x = ((e.clientX - rect.left) / rect.width) * 100;
+            const y = ((e.clientY - rect.top) / rect.height) * 100;
+            const newItem: MediaItem = {
+              id: crypto.randomUUID(),
+              type,
+              mediaId,
+              x: Math.max(5, Math.min(95, x)),
+              y: Math.max(5, Math.min(95, y)),
+              rotation: 0,
+              scale: 0.8,
+            };
+            setItems(prev => [...prev, newItem]);
+          }
+        }}
+      >
         {/* Flowers background */}
         <div className="absolute inset-0 flex items-center justify-center">
           <Image
@@ -446,7 +618,8 @@ function Home() {
             alt="Flower bouquet"
             width={900}
             height={1200}
-            className="object-contain max-h-[95vh] pointer-events-none"
+            className="object-contain max-h-[95vh] pointer-events-none select-none"
+            draggable={false}
             priority
           />
         </div>
@@ -540,16 +713,16 @@ function Home() {
       {!isViewingShared && (
         <div className={`fixed left-0 top-0 h-full z-30 transition-transform duration-300 ${sidebarOpen ? 'translate-x-0' : '-translate-x-[280px]'}`}>
           <div className="w-[280px] h-full bg-[#E6E6E6]/50 backdrop-blur-md pt-20 pb-6 flex flex-col relative">
-            {/* Appstar logo bottom left */}
-            <div className="absolute bottom-4 left-4">
-              <Image src="/appstar.png" alt="Appstar" width={120} height={120} className="w-auto h-24 rounded-xl" />
-            </div>
-            <div className="flex-1 overflow-y-auto px-4 space-y-3">
+                        <div className="flex-1 overflow-y-auto px-4 space-y-3">
               {CURATED_MEDIA.map((media, index) => (
-                <button
+                <div
                   key={index}
+                  draggable
+                  onDragStart={(e) => {
+                    e.dataTransfer.setData('application/json', JSON.stringify({ type: media.type, mediaId: media.mediaId }));
+                  }}
                   onClick={() => addItem(media.type, media.mediaId)}
-                  className="w-full p-3 bg-white hover:bg-white/90 border-2 border-[#EAEAEA] rounded-lg transition-colors text-left flex items-center gap-3"
+                  className="w-full p-3 bg-white hover:bg-white/90 rounded-lg transition-colors text-left flex items-center gap-3 cursor-grab active:cursor-grabbing"
                 >
                   {media.type === 'youtube' && (
                     <div className="w-10 h-10 bg-[#FF0000] rounded flex items-center justify-center flex-shrink-0">
@@ -579,11 +752,39 @@ function Home() {
                       </svg>
                     </div>
                   )}
+                  {media.type === 'letterboxd' && (
+                    <div className="w-10 h-10 bg-[#00e054] rounded flex items-center justify-center flex-shrink-0">
+                      <svg className="w-5 h-5 text-[#14181c]" fill="currentColor" viewBox="0 0 500 500">
+                        <path d="M250 0C111.93 0 0 111.93 0 250s111.93 250 250 250 250-111.93 250-250S388.07 0 250 0zm0 472.73C128.52 472.73 27.27 371.48 27.27 250S128.52 27.27 250 27.27 472.73 128.52 472.73 250 371.48 472.73 250 472.73z"/>
+                        <circle cx="250" cy="250" r="110"/>
+                      </svg>
+                    </div>
+                  )}
+                  {media.type === 'twitter' && (
+                    <div className="w-10 h-10 bg-black rounded flex items-center justify-center flex-shrink-0">
+                      <svg className="w-5 h-5 text-white" fill="currentColor" viewBox="0 0 24 24">
+                        <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/>
+                      </svg>
+                    </div>
+                  )}
                   <div className="flex-1 min-w-0">
                     <span className="text-black text-sm font-medium truncate block">{media.label}</span>
                     <span className="text-black/50 text-xs capitalize">{media.type}</span>
                   </div>
-                </button>
+                </div>
+              ))}
+            </div>
+            {/* Profile pictures */}
+            <div className="flex flex-wrap gap-2 justify-center px-4 pt-4">
+              {[...Array(5)].map((_, i) => (
+                <Image
+                  key={i}
+                  src="/pfp.jpg"
+                  alt="Profile"
+                  width={40}
+                  height={40}
+                  className="w-10 h-10 rounded-full object-cover"
+                />
               ))}
             </div>
           </div>
@@ -605,7 +806,7 @@ function Home() {
           {/* Flower toggle button */}
           <button
             onClick={() => setFlowerImage(flowerImage === 'flowers' ? 'flowers2' : 'flowers')}
-            className="w-full rounded-lg bg-white border-2 border-[#EAEAEA] transition-all overflow-hidden"
+            className="w-full rounded-lg bg-[#E6E6E6]/50 backdrop-blur-md transition-all overflow-hidden"
           >
             <Image
               src={`/${flowerImage === 'flowers' ? 'flowers2' : 'flowers'}.png`}
@@ -617,7 +818,7 @@ function Home() {
           </button>
 
           {/* Background color picker */}
-          <div className="relative h-12 w-full rounded-lg border-2 border-[#EAEAEA] overflow-hidden">
+          <div className="relative h-12 w-full rounded-lg bg-[#E6E6E6]/50 backdrop-blur-md border-2 border-[#E6E6E6]/50 overflow-hidden">
             <input
               type="color"
               value={bgColor}
@@ -629,7 +830,7 @@ function Home() {
           {/* Add link button */}
           <button
             onClick={handlePaste}
-            className="h-12 w-full rounded-lg bg-[#E6E6E6]/50 backdrop-blur-md border-2 border-[#EAEAEA] transition-all flex items-center justify-center text-black hover:bg-white/90"
+            className="h-12 w-full rounded-lg bg-[#E6E6E6]/50 backdrop-blur-md transition-all flex items-center justify-center text-black hover:bg-white/90"
           >
             <span className="font-medium">Add Link</span>
           </button>
@@ -649,12 +850,13 @@ function Home() {
             <button
               onClick={handleSave}
               disabled={isSaving}
-              className="h-12 w-full rounded-lg bg-[#E6E6E6]/50 backdrop-blur-md border-2 border-[#EAEAEA] hover:bg-white/90 transition-all flex items-center justify-center text-black disabled:opacity-50"
+              className="h-12 w-full rounded-lg bg-[#E6E6E6]/50 backdrop-blur-md hover:bg-white/90 transition-all flex items-center justify-center text-black disabled:opacity-50"
             >
               <span className="font-medium">{isSaving ? 'Saving...' : 'Save & Share'}</span>
             </button>
           )}
-        </div>
+
+                  </div>
       )}
 
       {/* Share URL display */}
@@ -696,10 +898,10 @@ function Home() {
 
       {/* Create your own button - when viewing shared */}
       {isViewingShared && (
-        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-40">
+        <div className="fixed bottom-6 left-6 z-40">
           <button
             onClick={() => window.location.href = window.location.origin}
-            className="h-12 px-6 rounded-lg bg-[#E6E6E6]/50 backdrop-blur-md border-2 border-[#EAEAEA] hover:bg-white/90 transition-all flex items-center gap-2 text-black"
+            className="h-12 px-6 rounded-lg bg-[#E6E6E6]/50 backdrop-blur-md hover:bg-white/90 transition-all flex items-center gap-2 text-black"
           >
             <span className="font-medium">Create Your Own</span>
           </button>
