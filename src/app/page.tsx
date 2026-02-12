@@ -850,38 +850,34 @@ function Home() {
         />
       </a>
 
-      {/* Turtle top right - hide on sharing page */}
-      {!isViewingShared && (
-        <div className="fixed top-4 right-4 md:top-6 md:right-6 z-40">
-          <a
-            href="https://dangertesting.com"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="cursor-pointer"
-          >
-            <Image
-              src="/turtle.png"
-              alt="Turtle"
-              width={150}
-              height={150}
-              className="w-12 h-12 md:w-20 md:h-20"
-            />
-          </a>
-        </div>
-      )}
-
-      {/* Link image bottom left - hide on sharing page */}
-      {!isViewingShared && (
-        <div className="fixed bottom-0 left-0 z-40 hidden md:block pointer-events-none">
+      {/* Turtle top right */}
+      <div className="fixed top-4 right-4 md:top-6 md:right-6 z-40">
+        <a
+          href="https://dangertesting.com"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="cursor-pointer"
+        >
           <Image
-            src="/link.png"
-            alt=""
-            width={400}
-            height={400}
-            className="w-36 h-36 object-contain"
+            src="/turtle.png"
+            alt="Turtle"
+            width={150}
+            height={150}
+            className="w-12 h-12 md:w-20 md:h-20"
           />
-        </div>
-      )}
+        </a>
+      </div>
+
+      {/* Link image bottom left */}
+      <div className="fixed bottom-0 left-0 z-40 hidden md:block pointer-events-none">
+        <Image
+          src="/link.png"
+          alt=""
+          width={400}
+          height={400}
+          className="w-36 h-36 object-contain"
+        />
+      </div>
 
       {/* Note display bottom right - only on sharing page */}
       {isViewingShared && savedNote && (
