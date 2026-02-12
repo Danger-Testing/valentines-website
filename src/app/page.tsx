@@ -105,7 +105,7 @@ const CURATED_BUCKETS = [
   },
   {
     name: "Reggie",
-    pfp: "/pfp.jpg",
+    pfp: "/reggie.jpg",
     media: [
       {
         type: "spotify" as MediaType,
