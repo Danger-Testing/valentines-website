@@ -37,39 +37,6 @@ export default function HomeClient() {
   );
 }
 
-// Precurated media items for the sidebar
-const ASCII_FLOWER = `⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⡎⠂⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⣰⢦⠀⢀⣤⠶⢖⡒⣢⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
-⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢠⠁⡔⢄⠀⠀⠀⠀⠀⠀⠀⠀⠀⢠⢩⠀⢡⠏⢀⣠⣼⡆⠀⡩⠤⡀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
-⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠎⢠⡆⠈⣦⠀⠀⠀⠀⠀⠀⠀⠀⡎⠌⠀⢈⠔⠡⢦⠛⡏⢶⠁⢀⠑⡀⢀⢔⡆⠙⡱⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
-⠀⠀⠀⠀⠀⠀⠀⠀⠀⢸⠀⢏⡇⠀⡇⠀⠀⠀⠀⠀⠀⠀⠀⡏⣆⠀⠎⠀⠁⠆⠀⡇⠘⣴⣮⣴⠴⡛⢹⠃⠀⢸⡇⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
-⠀⠀⠀⠀⠀⠀⠀⠀⠀⠸⡡⠈⡇⣘⠀⡇⠀⠀⠀⠀⠀⠀⠀⠇⠙⣷⠇⠀⢰⠀⠀⠁⠀⣻⠏⢀⠎⠀⠈⡄⣠⠟⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
-⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠱⡄⢰⡜⡐⡇⠀⠀⠀⠀⠀⠀⠀⠰⢡⠈⢃⠀⠸⠰⠀⠀⢀⠇⠀⠀⠀⡀⢀⡿⠋⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
-⠀⠀⠀⠀⠀⠀⡀⠀⣀⡀⠀⠈⢄⠱⡘⠇⠀⠀⠀⠀⠀⠀⠀⠈⣄⢂⠘⡀⣦⠀⣀⡬⢊⣠⠊⠀⢀⡠⠚⠁⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
-⠀⠀⠀⠀⡀⡜⢟⠀⠘⠜⢇⢄⠀⠃⢧⡄⠀⠀⠀⠀⠀⠀⠀⠀⠘⢼⡀⡇⡿⢠⣿⣿⣟⣠⣼⡤⠿⠛⠃⠀⠛⠄⡀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
-⠀⠀⠀⡔⢀⡈⣶⠆⠀⢄⣈⠆⠱⡄⠀⡷⠔⡟⡅⠀⠀⠀⠀⠀⠀⠀⢳⢷⢧⠛⠛⢿⡿⠳⠘⠛⠛⠐⠀⠤⡀⣴⠟⠃⠀⠀⠀⠀⠀⠀⠀⠀⠀
-⠀⠀⣬⠤⠄⠈⡇⠢⠀⠀⠈⠙⠪⣞⡶⠁⠀⠀⣤⠀⠀⠀⠀⠀⠀⣰⠁⢁⠶⠛⠉⠳⢨⡑⣄⡀⠀⣀⠀⡀⡘⣅⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
-⠀⣀⣈⡆⠀⠀⢡⠀⠀⠀⠀⠀⠀⢸⡗⠀⣰⡞⠈⣧⠀⠀⠀⠀⣰⣟⠂⠁⠀⠀⠀⠀⠀⠈⡰⠯⠖⣀⡀⠈⠝⠋⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
-⠈⠳⡌⣩⡁⠑⠚⠛⠢⣀⠑⢤⡐⣮⣷⠾⠋⠀⠀⠸⡟⢿⢍⠍⠉⠄⠉⠐⢦⡀⠀⠀⠀⡞⠀⠀⠑⡄⠀⠒⠂⠒⠀⢀⠀⠀⠀⠀⠀⠀⠀⠀⠀
-⠀⠀⠑⠦⠽⠁⠂⠠⠄⠀⡈⠙⢻⢛⢷⠇⠀⠀⠀⢼⡇⠄⠃⠀⠄⠈⢃⠈⠂⠈⠲⡀⠊⠀⢰⠀⠀⢰⠀⠀⠀⠀⠀⢸⠀⠀⠀⠀⠀⠀⠀⠀⠀
-⠀⠀⠀⠀⠀⠑⠆⢥⣤⠶⠶⠷⢼⣦⣊⣿⠀⠀⠀⠈⣧⠐⡀⠀⠘⡀⠀⠁⠀⠀⠀⡘⡃⠀⠈⠀⠀⡮⠀⠀⠀⠀⠀⢸⠀⠀⠀⠀⠀⠀⠀⠀⠀
-⠀⠀⠀⠀⣤⡀⢀⣀⡀⠀⠤⣀⠀⠙⢟⠧⠇⠀⠀⠀⣿⡀⠑⠀⠀⠁⠀⡀⢷⡀⠢⣳⢁⠀⡀⠀⣼⡃⢀⢔⡀⢠⠆⣀⣠⡤⠤⢀⡀⠀⠀⠀⠀
-⠀⠀⠀⠀⠀⠉⠂⠐⢏⣓⠮⠮⡑⠄⢀⠑⢿⡆⠀⢸⠇⠱⣄⠀⠀⠀⠀⠈⠠⢼⠀⢸⣿⢰⣡⣰⣗⠈⠀⡄⣺⣯⡾⡛⠁⠁⠀⠀⠈⠐⠀⢤⠀
-⠀⠀⠀⠀⠀⠀⠀⠀⠀⠁⠒⣀⣈⣚⢦⣆⡀⢻⣤⡟⠀⠀⢀⣑⣦⣄⡀⠀⠁⣹⡀⢠⣿⣷⣿⣻⡇⡀⠴⠿⠯⢧⣥⠀⠀⠀⠀⠀⠀⠀⠀⠀⡇
-⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⣀⣀⣤⠬⢦⣿⢀⡰⢚⠻⠹⡙⠛⣟⣦⡐⢽⣷⣿⣿⣿⣿⢟⣁⣀⠠⠐⠈⠁⡜⠀⠀⠀⠀⠀⠀⠀⢀⡴⠁
-⠀⠀⠀⠀⠀⠀⠀⡠⣐⣀⣀⢀⡥⡶⠉⠀⠀⠀⣿⠊⠀⠀⠀⠀⠀⢀⠠⠨⠽⠦⢝⣻⣿⣿⣿⣿⣅⠰⠼⠿⢿⣛⡉⠀⠄⠀⠀⠀⢁⡠⠊⠀⠀
-⠀⠀⠀⠀⠀⡀⠜⠀⠀⣀⢶⠡⡘⠀⠀⠀⠀⠀⠇⠀⠀⠀⠀⠀⠂⠀⠀⠀⠀⠰⠋⣾⣦⢛⠻⡉⠋⠋⠓⠂⠀⠈⠉⠛⠳⡖⠚⠊⠁⠀⠀⠀⠀
-⠀⠀⠀⠀⡐⠉⠀⣠⠊⣁⢂⠔⠁⠀⠀⠀⠀⠀⡄⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⣰⢋⣼⢆⠙⡅⠀⠀⠀⠀⠀⠀⠀⠀⠈⢊⡄⠀⠀⠀⠀⠀⠀
-⠀⠀⠀⡠⡂⢔⠙⢕⡸⠇⠀⠀⠀⠀⠀⠀⠀⠀⢸⡦⢀⠀⠀⠀⠀⠀⢀⣠⣲⣌⠵⠚⠁⠀⢀⠈⣆⠀⠀⠀⠀⠀⠀⠀⠀⠀⠘⡄⠀⠀⠀⠀⠀
-⠀⠠⠖⠁⠂⠉⠁⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⣿⠀⠉⠂⣤⡴⠒⠛⡉⠁⠤⢀⠠⡆⠀⠀⠀⢜⢆⠀⠀⠀⠀⠀⠀⠀⠀⠀⠘⠀⠀⠀⠀⠀
-⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢸⠃⢠⡞⠉⣤⠊⠁⠈⢠⣴⣭⡜⠀⠀⠀⠀⠀⠉⢢⠀⠀⠀⠀⠀⠀⠀⠀⡜⠀⠀⠀⠀⠀
-⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⣼⣰⢏⢴⣯⠰⠂⠁⢍⠄⠊⠈⠀⠀⠀⠀⠀⠀⠀⠀⠑⠦⣀⡀⠀⠀⠀⢠⠁⠀⠀⠀⠀⠀
-⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢸⣿⣥⢾⣕⣂⠈⠉⠩⠭⠉⠁⠖⠂⠤⢀⡀⠀⠀⠀⠀⠀⠀⠀⠈⠉⠁⠈⠀⠀⠀⠀⠀⠀⠀
-⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⣼⡟⠀⠀⠙⢟⣕⠢⣈⠉⠁⠤⠤⠤⠀⢀⠑⢆⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
-⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⣠⠟⠀⠀⠀⠀⠈⢳⣳⠄⠅⠣⠐⠠⢄⣀⢀⣀⠀⣑⣄⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
-⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⣠⡾⠋⠀⠀⠀⠀⠀⠀⠀⠉⠓⠤⣀⡀⠀⠄⠀⠈⢉⣀⣀⣀⣒⣄⡀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
-⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⣠⡾⠋⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠉⠉⠉⠉⠁⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
-⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⣴⠾⠋⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀`;
-
 // Precurated media items for the sidebar, organized by flower type
 const CURATED_BUCKETS = [
   {
@@ -78,19 +45,14 @@ const CURATED_BUCKETS = [
     link: "https://x.com/marcgmbh",
     media: [
       {
-        type: "substack" as MediaType,
-        mediaId: "https://www.henrikkarlsson.xyz/p/looking-for-alice",
-        label: "Looking for Alice",
+        type: "spotify" as MediaType,
+        mediaId: "track/3gighwbMyIfJKVpauvANY2",
+        label: "The City Never Felt So Good - 1tbsp",
       },
       {
         type: "spotify" as MediaType,
         mediaId: "track/1RAiHhh4HfUgcA1ATlg9yA",
         label: "Comin Home - Jespfur & Paula",
-      },
-      {
-        type: "youtube" as MediaType,
-        mediaId: "5U4S4ki4YZs",
-        label: "Why Humans Create",
       },
       {
         type: "letterboxd" as MediaType,
@@ -100,7 +62,72 @@ const CURATED_BUCKETS = [
       {
         type: "youtube" as MediaType,
         mediaId: "drb-tch9o74",
+        label: "WHITE TEE [INCREDIBLE VIBES DISCOVERED]",
+      },
+      {
+        type: "youtube" as MediaType,
+        mediaId: "5U4S4ki4YZs",
+        label: "Why Humans Create",
+      },
+      {
+        type: "substack" as MediaType,
+        mediaId: "https://www.frederikjournals.com/p/the-way-south",
+        label: "The Way South",
+      },
+      {
+        type: "link" as MediaType,
+        mediaId: "https://magazine.032c.com/magazine/michel-majerus",
+        label: "Michel Majerus - 032c",
+      },
+      {
+        type: "letterboxd" as MediaType,
+        mediaId: "https://letterboxd.com/film/babylon-2022/",
+        label: "Babylon (2022)",
+      },
+      {
+        type: "instagram" as MediaType,
+        mediaId: "DLihxUgsawm",
+        label: "Instagram",
+      },
+      {
+        type: "instagram" as MediaType,
+        mediaId: "DLkKDr1MnXg",
+        label: "Instagram",
+      },
+      {
+        type: "spotify" as MediaType,
+        mediaId: "track/4E7H6rqgxHdSoeGSS28CTY",
+        label: "Benz Friendz - Future ft. André 3000",
+      },
+      {
+        type: "youtube" as MediaType,
+        mediaId: "B5kFBFp-9H0",
         label: "YouTube",
+      },
+      {
+        type: "spotify" as MediaType,
+        mediaId: "track/2M9ro2krNb7nr7HSprkEgo",
+        label: "Fast Car - Tracy Chapman",
+      },
+      {
+        type: "youtube" as MediaType,
+        mediaId: "2Dpd_8n3A5U",
+        label: "FILMMAKING IS A SPORT",
+      },
+      {
+        type: "youtube" as MediaType,
+        mediaId: "pqzcCfUglws",
+        label: "The Psychology of Human Misjudgement - Charlie Munger",
+      },
+      {
+        type: "youtube" as MediaType,
+        mediaId: "0fKBhvDjuy0",
+        label: "Powers of Ten™ (1977)",
+      },
+      {
+        type: "substack" as MediaType,
+        mediaId: "https://www.henrikkarlsson.xyz/p/looking-for-alice",
+        label: "Looking for Alice",
       },
     ],
   },
@@ -222,6 +249,33 @@ const CURATED_BUCKETS = [
       },
     ],
   },
+  {
+    name: "lelix",
+    pfp: "/lelix.jpg",
+    link: "https://www.instagram.com/lelix.jet/",
+    media: [
+      {
+        type: "youtube" as MediaType,
+        mediaId: "sAQHr-pnrQo",
+        label: "Shrek's Best Scenes",
+      },
+      {
+        type: "spotify" as MediaType,
+        mediaId: "track/13toFl1UwJPsRxDiD9jgtn",
+        label: "As - Stevie Wonder",
+      },
+      {
+        type: "link" as MediaType,
+        mediaId: "https://www.flickr.com/photos/henrylizardlover/3279951706/",
+        label: "Flickr Photo",
+      },
+      {
+        type: "letterboxd" as MediaType,
+        mediaId: "https://letterboxd.com/film/interstellar/",
+        label: "Interstellar (2014)",
+      },
+    ],
+  },
 ];
 
 function Home() {
@@ -246,9 +300,9 @@ function Home() {
   const [isLoading, setIsLoading] = useState(false);
   const [isViewingShared, setIsViewingShared] = useState(false);
   const [copied, setCopied] = useState(false);
-  const [flowerImage, setFlowerImage] = useState<
-    "flowers" | "flowers2" | "ascii"
-  >("flowers");
+  const [flowerImage, setFlowerImage] = useState<"flowers" | "flowers2">(
+    "flowers",
+  );
   const [bgColor, setBgColor] = useState("#ffffff");
   const [showNoteModal, setShowNoteModal] = useState(false);
   const [note, setNote] = useState(
@@ -259,6 +313,7 @@ function Home() {
   const [savedNote, setSavedNote] = useState<string | null>(null);
   const [savedFromName, setSavedFromName] = useState<string | null>(null);
   const [savedToName, setSavedToName] = useState<string | null>(null);
+  const [isGallery, setIsGallery] = useState(false);
   const [canvasScale, setCanvasScale] = useState(1);
   const [toast, setToast] = useState<{
     message: string;
@@ -307,8 +362,6 @@ function Home() {
         // Set the flower image based on saved image_url
         if (result.image_url === "/flowers2.png") {
           setFlowerImage("flowers2");
-        } else if (result.image_url === "ascii") {
-          setFlowerImage("ascii");
         } else {
           setFlowerImage("flowers");
         }
@@ -329,13 +382,14 @@ function Home() {
     setIsSaving(true);
 
     const result = await saveBouquet({
-      image_url: flowerImage === "ascii" ? "ascii" : `/${flowerImage}.png`,
+      image_url: `/${flowerImage}.png`,
       paths: [],
       items: items,
       note: note.trim() ? note : null,
       bg_color: bgColor,
       from_name: fromName.trim() ? fromName : null,
       to_name: toName.trim() ? toName : null,
+      is_gallery: isGallery,
     });
 
     if ("error" in result) {
@@ -818,22 +872,14 @@ function Home() {
         >
           {/* Flowers background */}
           <div className="absolute inset-x-0 -bottom-[40%] -top-[10%]">
-            {flowerImage === "ascii" ? (
-              <div className="absolute inset-0 flex items-center justify-center select-none">
-                <pre className="text-[0.5rem] sm:text-[0.8rem] md:text-[1.1rem] leading-[1.1] text-black whitespace-pre font-mono">
-                  {ASCII_FLOWER}
-                </pre>
-              </div>
-            ) : (
-              <Image
-                src={`/${flowerImage}.png`}
-                alt="Flower bouquet"
-                fill
-                className="object-contain select-none"
-                draggable={false}
-                priority
-              />
-            )}
+            <Image
+              src={`/${flowerImage}.png`}
+              alt="Flower bouquet"
+              fill
+              className="object-contain select-none"
+              draggable={false}
+              priority
+            />
             {/* Clickable area on flower to paste link or open drawer */}
             {!isViewingShared && (
               <button
@@ -1053,10 +1099,11 @@ function Home() {
           className={`fixed left-0 top-1/2 -translate-y-1/2 z-30 transition-transform duration-300 ${sidebarOpen ? "translate-x-0" : "-translate-x-[280px]"}`}
         >
           <div className="w-[280px] bg-[#E6E6E6]/50 backdrop-blur-md rounded-r-2xl py-4 flex flex-col relative">
-            {/* Profile pictures row */}
+            {/* Profile pictures rows */}
             <div className="px-4 pb-2">
-              <div className="flex justify-between">
-                {CURATED_BUCKETS.map((bucket, i) => (
+              {/* First row */}
+              <div className="flex justify-between mb-2">
+                {CURATED_BUCKETS.slice(0, 5).map((bucket, i) => (
                   <button
                     key={i}
                     onClick={() => setSelectedBucket(i)}
@@ -1072,9 +1119,29 @@ function Home() {
                   </button>
                 ))}
               </div>
+              {/* Second row */}
+              {CURATED_BUCKETS.length > 5 && (
+                <div className="flex justify-start gap-[calc((100%-200px)/4)]">
+                  {CURATED_BUCKETS.slice(5).map((bucket, i) => (
+                    <button
+                      key={i + 5}
+                      onClick={() => setSelectedBucket(i + 5)}
+                      className={`rounded-full transition-all ${selectedBucket === i + 5 ? "scale-110" : "opacity-60 hover:opacity-100"}`}
+                    >
+                      <Image
+                        src={bucket.pfp}
+                        alt={bucket.name}
+                        width={40}
+                        height={40}
+                        className="w-10 h-10 rounded-full object-cover"
+                      />
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
             {/* Media items for selected bucket */}
-            <div className="px-4 pt-2 flex flex-col space-y-2">
+            <div className="px-4 pt-2 flex flex-col space-y-2 max-h-[460px] overflow-y-auto">
               {CURATED_BUCKETS[selectedBucket].media.map((media, index) => (
                 <div
                   key={index}
@@ -1187,31 +1254,17 @@ function Home() {
             {/* Flower toggle button */}
             <button
               onClick={() =>
-                setFlowerImage(
-                  flowerImage === "flowers"
-                    ? "flowers2"
-                    : flowerImage === "flowers2"
-                      ? "ascii"
-                      : "flowers",
-                )
+                setFlowerImage(flowerImage === "flowers" ? "flowers2" : "flowers")
               }
               className="w-20 md:w-full rounded-lg bg-[#E6E6E6]/50 backdrop-blur-md transition-all overflow-hidden cursor-pointer relative group"
             >
-              {flowerImage === "flowers2" ? (
-                <div className="w-full aspect-[4/5] flex items-center justify-center bg-white/50">
-                  <pre className="text-[0.22rem] md:text-[0.35rem] leading-[1.1] text-black whitespace-pre font-mono">
-                    {ASCII_FLOWER}
-                  </pre>
-                </div>
-              ) : (
-                <Image
-                  src={`/${flowerImage === "flowers" ? "flowers2" : "flowers"}.png`}
-                  alt="Switch flowers"
-                  width={160}
-                  height={200}
-                  className="w-full h-auto"
-                />
-              )}
+              <Image
+                src={`/${flowerImage === "flowers" ? "flowers2" : "flowers"}.png`}
+                alt="Switch flowers"
+                width={160}
+                height={200}
+                className="w-full h-auto"
+              />
               <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center bg-black/40">
                 <span className="text-white font-medium text-center text-xs md:text-base">
                   Change
@@ -1376,6 +1429,22 @@ function Home() {
               className="w-full px-4 py-3 rounded-xl border-none focus:outline-none mb-4 resize-none h-36 bg-transparent"
               autoFocus
             />
+            <label className="flex items-center gap-3 mb-4 cursor-pointer group">
+              <div className="relative w-12 h-7 rounded-full bg-black/10 transition-colors duration-200 ease-in-out peer-focus:ring-2 peer-focus:ring-[#DB234F]/50"
+                style={{ backgroundColor: isGallery ? '#DB234F' : 'rgba(0,0,0,0.1)' }}>
+                <div
+                  className="absolute top-0.5 left-0.5 w-6 h-6 bg-white rounded-full shadow-md transition-transform duration-200 ease-in-out"
+                  style={{ transform: isGallery ? 'translateX(20px)' : 'translateX(0)' }}
+                />
+              </div>
+              <input
+                type="checkbox"
+                checked={isGallery}
+                onChange={(e) => setIsGallery(e.target.checked)}
+                className="sr-only peer"
+              />
+              <span className="text-black/70 text-sm">Show in gallery</span>
+            </label>
             <div className="flex gap-3">
               <button
                 type="button"
