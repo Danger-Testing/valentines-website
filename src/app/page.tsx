@@ -23,6 +23,8 @@ import {
 // Splash screen component
 function SplashScreen({ onComplete }: { onComplete: () => void }) {
   const [step, setStep] = useState(1);
+  const onCompleteRef = useRef(onComplete);
+  onCompleteRef.current = onComplete;
 
   useEffect(() => {
     // Step 1: Show step1.png for 2000ms
@@ -32,7 +34,7 @@ function SplashScreen({ onComplete }: { onComplete: () => void }) {
     // Step 2: Show step2.png for 2000ms
     const timer3 = setTimeout(() => setStep(4), 4500);
     // Black screen then complete
-    const timer4 = setTimeout(() => onComplete(), 5000);
+    const timer4 = setTimeout(() => onCompleteRef.current(), 5000);
 
     return () => {
       clearTimeout(timer1);
@@ -40,7 +42,7 @@ function SplashScreen({ onComplete }: { onComplete: () => void }) {
       clearTimeout(timer3);
       clearTimeout(timer4);
     };
-  }, [onComplete]);
+  }, []);
 
   return (
     <div className="fixed inset-0 z-[100] bg-black">
