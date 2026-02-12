@@ -70,10 +70,10 @@ const ASCII_FLOWER = `⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⡎⠂⠀⠀⠀⠀⠀⠀�
 ⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⣠⡾⠋⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠉⠉⠉⠉⠁⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
 ⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⣴⠾⠋⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀`;
 
-// Precurated media items for the sidebar, organized by person
+// Precurated media items for the sidebar, organized by flower type
 const CURATED_BUCKETS = [
   {
-    name: "Marc",
+    name: "Rose",
     pfp: "/pfp.jpg",
     media: [
       {
@@ -104,22 +104,22 @@ const CURATED_BUCKETS = [
     ],
   },
   {
-    name: "Person 2",
+    name: "Tulip",
     pfp: "/pfp.jpg",
     media: [],
   },
   {
-    name: "Person 3",
+    name: "Dahlia",
     pfp: "/pfp.jpg",
     media: [],
   },
   {
-    name: "Person 4",
+    name: "Peony",
     pfp: "/pfp.jpg",
     media: [],
   },
   {
-    name: "Person 5",
+    name: "Lily",
     pfp: "/pfp.jpg",
     media: [],
   },
