@@ -841,13 +841,9 @@ function Home() {
 
       {/* Header */}
       <a href="/" className="fixed top-6 left-6 z-40 cursor-pointer">
-        <Image
-          src="/logo.png"
-          alt="Link Bouquet"
-          width={350}
-          height={88}
-          className="h-10 md:h-14 w-auto"
-        />
+        <span className="text-black text-xl md:text-2xl font-medium" style={{ fontFamily: 'Helvetica, Arial, sans-serif' }}>
+          linkbouquet.com
+        </span>
       </a>
 
       {/* Turtle top right */}
