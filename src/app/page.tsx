@@ -690,7 +690,7 @@ function Home() {
           }}
         >
           {/* Flowers background */}
-          <div className={`absolute ${isViewingShared ? "inset-0 p-12 sm:p-16 md:p-24" : "inset-x-0 -bottom-[40%] -top-[10%]"}`}>
+          <div className="absolute inset-x-0 -bottom-[40%] -top-[10%]">
             {flowerImage === "ascii" ? (
               <div className="absolute inset-0 flex items-center justify-center select-none">
                 <pre className="text-[0.5rem] sm:text-[0.8rem] md:text-[1.1rem] leading-[1.1] text-black whitespace-pre font-mono">
