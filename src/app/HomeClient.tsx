@@ -73,8 +73,9 @@ const ASCII_FLOWER = `⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⡎⠂⠀⠀⠀⠀⠀⠀�
 // Precurated media items for the sidebar, organized by flower type
 const CURATED_BUCKETS = [
   {
-    name: "Rose",
+    name: "marc",
     pfp: "/pfp.jpg",
+    link: "https://x.com/marcgmbh",
     media: [
       {
         type: "substack" as MediaType,
@@ -104,8 +105,9 @@ const CURATED_BUCKETS = [
     ],
   },
   {
-    name: "Reggie",
+    name: "reggie",
     pfp: "/reggie.jpg",
+    link: "https://x.com/HipCityReg",
     media: [
       {
         type: "spotify" as MediaType,
@@ -125,8 +127,9 @@ const CURATED_BUCKETS = [
     ],
   },
   {
-    name: "Mike",
+    name: "mike",
     pfp: "/mike.jpg",
+    link: "https://x.com/immike_wing",
     media: [
       {
         type: "youtube" as MediaType,
@@ -146,8 +149,9 @@ const CURATED_BUCKETS = [
     ],
   },
   {
-    name: "Anna",
+    name: "anna",
     pfp: "/anna.JPG",
+    link: "https://x.com/hard_boiledbabe",
     media: [
       {
         type: "letterboxd" as MediaType,
@@ -187,8 +191,9 @@ const CURATED_BUCKETS = [
     ],
   },
   {
-    name: "Liz",
+    name: "liz",
     pfp: "/liz.png",
+    link: "https://www.instagram.com/lizmontesano/",
     media: [
       {
         type: "link" as MediaType,
@@ -1121,7 +1126,15 @@ function Home() {
               )}
               {CURATED_BUCKETS[selectedBucket].media.length > 0 && (
                 <p className="text-black/50 text-xs text-center pt-4 italic">
-                  Curated by {CURATED_BUCKETS[selectedBucket].name}
+                  Curated by{" "}
+                  <a
+                    href={CURATED_BUCKETS[selectedBucket].link}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="underline"
+                  >
+                    {CURATED_BUCKETS[selectedBucket].name}
+                  </a>
                 </p>
               )}
             </div>
