@@ -95,9 +95,11 @@ const CURATED_MEDIA = [
 function SubstackThumbnail({
   url,
   isModal,
+  onLinkClick,
 }: {
   url: string;
   isModal: boolean;
+  onLinkClick?: (e: React.MouseEvent) => void;
 }) {
   const [thumbnail, setThumbnail] = useState<string | null>(null);
   const [title, setTitle] = useState<string>("");
@@ -130,12 +132,9 @@ function SubstackThumbnail({
   }
 
   return (
-    <a
-      href={url}
-      target="_blank"
-      rel="noopener noreferrer"
+    <div
+      onClick={onLinkClick}
       className="block w-[200px] h-[140px] rounded-xl overflow-hidden shadow-lg bg-white hover:shadow-xl transition-shadow cursor-pointer"
-      onClick={(e) => e.stopPropagation()}
     >
       {thumbnail ? (
         <div className="w-full h-full relative">
@@ -173,7 +172,7 @@ function SubstackThumbnail({
           </span>
         </div>
       )}
-    </a>
+    </div>
   );
 }
 
@@ -181,9 +180,11 @@ function SubstackThumbnail({
 function LetterboxdThumbnail({
   url,
   isModal,
+  onLinkClick,
 }: {
   url: string;
   isModal: boolean;
+  onLinkClick?: (e: React.MouseEvent) => void;
 }) {
   const [poster, setPoster] = useState<string | null>(null);
   const [title, setTitle] = useState<string>("");
@@ -257,10 +258,8 @@ function LetterboxdThumbnail({
   }
 
   return (
-    <a
-      href={url}
-      target="_blank"
-      rel="noopener noreferrer"
+    <div
+      onClick={onLinkClick}
       className="block cursor-pointer"
     >
       <div className="w-[140px] h-[210px] bg-[#14181c] rounded-xl overflow-hidden shadow-lg">
@@ -298,7 +297,97 @@ function LetterboxdThumbnail({
           </div>
         )}
       </div>
-    </a>
+    </div>
+  );
+}
+
+// Generic link thumbnail component that fetches OG image
+function LinkThumbnail({
+  url,
+  isModal,
+  onLinkClick,
+}: {
+  url: string;
+  isModal: boolean;
+  onLinkClick?: (e: React.MouseEvent) => void;
+}) {
+  const [thumbnail, setThumbnail] = useState<string | null>(null);
+  const [title, setTitle] = useState<string>("");
+
+  useEffect(() => {
+    // Extract domain for initial display
+    try {
+      const parsed = new URL(url);
+      setTitle(parsed.hostname.replace("www.", ""));
+    } catch {
+      setTitle("Link");
+    }
+
+    fetch(`/api/og?url=${encodeURIComponent(url)}`)
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.image) setThumbnail(data.image);
+        if (data.title) setTitle(data.title);
+      })
+      .catch(() => {});
+  }, [url]);
+
+  if (isModal) {
+    return (
+      <a
+        href={url}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="block cursor-pointer"
+      >
+        <div className="w-[400px] bg-white rounded-xl overflow-hidden shadow-lg">
+          {thumbnail ? (
+            <img src={thumbnail} alt={title} className="w-full h-[250px] object-cover" />
+          ) : (
+            <div className="w-full h-[250px] bg-gradient-to-br from-gray-100 to-gray-200 flex items-center justify-center">
+              <svg className="w-16 h-16 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
+              </svg>
+            </div>
+          )}
+          <div className="p-4">
+            <h3 className="text-black font-medium text-lg line-clamp-2">{title}</h3>
+            <p className="text-gray-500 text-sm truncate">{url}</p>
+          </div>
+        </div>
+      </a>
+    );
+  }
+
+  return (
+    <div
+      onClick={onLinkClick}
+      className="block w-[200px] h-[140px] rounded-xl overflow-hidden shadow-lg bg-white hover:shadow-xl transition-shadow cursor-pointer"
+    >
+      {thumbnail ? (
+        <div className="w-full h-full relative">
+          <img
+            src={thumbnail}
+            alt={title}
+            className="w-full h-full object-cover"
+          />
+          <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-2">
+            <span className="text-[10px] text-white font-medium truncate block">
+              {title}
+            </span>
+          </div>
+        </div>
+      ) : (
+        <div className="w-full h-full bg-gradient-to-br from-gray-50 to-gray-100 border border-gray-200 p-3 flex flex-col justify-center items-center">
+          <svg className="w-10 h-10 text-gray-400 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
+          </svg>
+          <span className="text-xs text-gray-600 font-medium text-center line-clamp-2">
+            {title}
+          </span>
+        </div>
+      )}
+    </div>
   );
 }
 
@@ -438,6 +527,16 @@ function Home() {
       /(?:twitter\.com|x\.com)\/([a-zA-Z0-9_]+)\/status\/(\d+)/,
     );
     if (twitterMatch) return { type: "twitter", id: twitterMatch[2] };
+
+    // Fallback: any valid URL becomes a generic link
+    try {
+      const parsed = new URL(url);
+      if (parsed.protocol === "http:" || parsed.protocol === "https:") {
+        return { type: "link", id: url };
+      }
+    } catch {
+      // Invalid URL
+    }
 
     return null;
   };
@@ -662,7 +761,7 @@ function Home() {
         if (showModal) setShowModal(null);
         if (showInput) setShowInput(false);
         if (showNoteModal) setShowNoteModal(false);
-                return;
+        return;
       }
 
       if (
@@ -689,8 +788,7 @@ function Home() {
 
   // Focus trap for modals
   useEffect(() => {
-    const isModalOpen =
-      showModal || showInput || showNoteModal;
+    const isModalOpen = showModal || showInput || showNoteModal;
     if (!isModalOpen) return;
 
     const handleTab = (e: KeyboardEvent) => {
@@ -853,11 +951,41 @@ function Home() {
     }
 
     if (item.type === "substack") {
-      return <SubstackThumbnail url={item.mediaId} isModal={isModal} />;
+      return (
+        <SubstackThumbnail
+          url={item.mediaId}
+          isModal={isModal}
+          onLinkClick={
+            isModal
+              ? undefined
+              : (e) => {
+                  e.stopPropagation();
+                  if (!hasDragged) {
+                    window.open(item.mediaId, "_blank", "noopener,noreferrer");
+                  }
+                }
+          }
+        />
+      );
     }
 
     if (item.type === "letterboxd") {
-      return <LetterboxdThumbnail url={item.mediaId} isModal={isModal} />;
+      return (
+        <LetterboxdThumbnail
+          url={item.mediaId}
+          isModal={isModal}
+          onLinkClick={
+            isModal
+              ? undefined
+              : (e) => {
+                  e.stopPropagation();
+                  if (!hasDragged) {
+                    window.open(item.mediaId, "_blank", "noopener,noreferrer");
+                  }
+                }
+          }
+        />
+      );
     }
 
     if (item.type === "twitter") {
@@ -888,6 +1016,25 @@ function Home() {
             scrolling="no"
           />
         </div>
+      );
+    }
+
+    if (item.type === "link") {
+      return (
+        <LinkThumbnail
+          url={item.mediaId}
+          isModal={isModal}
+          onLinkClick={
+            isModal
+              ? undefined
+              : (e) => {
+                  e.stopPropagation();
+                  if (!hasDragged) {
+                    window.open(item.mediaId, "_blank", "noopener,noreferrer");
+                  }
+                }
+          }
+        />
       );
     }
 
@@ -964,15 +1111,21 @@ function Home() {
           {!isViewingShared && items.length === 0 && (
             <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-10">
               <div className="bg-white/80 backdrop-blur-sm rounded-2xl px-8 py-6 text-left max-w-sm shadow-lg">
-                <p className="text-black/60 text-fluid-sm mb-2">
-                  To create a bouquet, paste a link with{" "}
+                <p className="text-black/80 text-fluid-lg font-medium mb-3">
+                  Start curating your bouquet
+                </p>
+                <p className="text-black/60 text-fluid-sm mb-3">
+                  Paste a link with{" "}
                   <kbd className="px-1.5 py-0.5 bg-black/10 rounded text-xs font-mono">
                     ⌘V
-                  </kbd>{" "}
-                  or click "Add Link"
+                  </kbd>
+                  <br />
+                  or tap Add Link to begin.
                 </p>
                 <p className="text-black/60 text-fluid-sm">
-                  To send your gift, click "Save & Share"
+                  When it's ready, click Save & Share
+                  <br />
+                  and surprise someone.
                 </p>
               </div>
             </div>
@@ -1133,7 +1286,9 @@ function Home() {
       {isViewingShared && savedNote && (
         <div className="fixed bottom-4 right-4 md:bottom-6 md:right-6 z-40 max-w-xs md:max-w-sm">
           <div className="bg-white/80 backdrop-blur-md rounded-xl p-4 shadow-lg">
-            <p className="text-black text-sm whitespace-pre-wrap">{savedNote}</p>
+            <p className="text-black text-sm whitespace-pre-wrap">
+              {savedNote}
+            </p>
           </div>
         </div>
       )}
