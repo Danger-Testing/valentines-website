@@ -830,7 +830,7 @@ function Home() {
           alt="Link Bouquet"
           width={350}
           height={88}
-          className="h-14 md:h-20 w-auto"
+          className="h-10 md:h-14 w-auto"
         />
       </a>
 
@@ -848,7 +848,7 @@ function Home() {
               alt="Turtle"
               width={150}
               height={150}
-              className="w-16 h-16 md:w-28 md:h-28"
+              className="w-12 h-12 md:w-20 md:h-20"
             />
           </a>
         </div>
@@ -862,7 +862,7 @@ function Home() {
             alt=""
             width={400}
             height={400}
-            className="w-72 h-72 object-contain"
+            className="w-52 h-52 object-contain"
           />
         </div>
       )}
