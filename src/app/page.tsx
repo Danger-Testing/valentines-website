@@ -104,9 +104,25 @@ const CURATED_BUCKETS = [
     ],
   },
   {
-    name: "Tulip",
+    name: "Reggie",
     pfp: "/pfp.jpg",
-    media: [],
+    media: [
+      {
+        type: "spotify" as MediaType,
+        mediaId: "track/5s1mZcxqYhgmlvDxg4IGwt",
+        label: "Spotify Track",
+      },
+      {
+        type: "link" as MediaType,
+        mediaId: "https://www.newyorker.com/magazine/2016/10/10/sam-altmans-manifest-destiny",
+        label: "Sam Altman's Manifest Destiny",
+      },
+      {
+        type: "youtube" as MediaType,
+        mediaId: "xhf5bHtf4jk",
+        label: "YouTube",
+      },
+    ],
   },
   {
     name: "Dahlia",
@@ -957,6 +973,13 @@ function Home() {
                       <svg className="w-5 h-5 text-[#14181c]" fill="currentColor" viewBox="0 0 500 500">
                         <path d="M250 0C111.93 0 0 111.93 0 250s111.93 250 250 250 250-111.93 250-250S388.07 0 250 0zm0 472.73C128.52 472.73 27.27 371.48 27.27 250S128.52 27.27 250 27.27 472.73 128.52 472.73 250 371.48 472.73 250 472.73z" />
                         <circle cx="250" cy="250" r="110" />
+                      </svg>
+                    </div>
+                  )}
+                  {media.type === "link" && (
+                    <div className="w-10 h-10 bg-gray-500 rounded flex items-center justify-center flex-shrink-0">
+                      <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
                       </svg>
                     </div>
                   )}
