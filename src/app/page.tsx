@@ -185,7 +185,7 @@ function Home() {
 
   const [items, setItems] = useState<MediaItem[]>([]);
   const [showInput, setShowInput] = useState(false);
-  const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
   const [showModal, setShowModal] = useState<MediaItem | null>(null);
   const [dragging, setDragging] = useState<string | null>(null);
   const [hasDragged, setHasDragged] = useState(false);
