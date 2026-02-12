@@ -20,64 +20,6 @@ import {
   LinkEmbed,
 } from "@/components/embeds";
 
-// Splash screen component
-function SplashScreen({ onComplete }: { onComplete: () => void }) {
-  const [step, setStep] = useState<"step1" | "black1" | "step2" | "black2">("step1");
-
-  useEffect(() => {
-    let cancelled = false;
-
-    const sequence = async () => {
-      // Step 1: Show step1.png for 1000ms
-      await new Promise(r => setTimeout(r, 1000));
-      if (cancelled) return;
-      setStep("black1");
-
-      // Black screen for 1000ms
-      await new Promise(r => setTimeout(r, 1000));
-      if (cancelled) return;
-      setStep("step2");
-
-      // Step 2: Show step2.png for 1000ms
-      await new Promise(r => setTimeout(r, 1000));
-      if (cancelled) return;
-      setStep("black2");
-
-      // Black screen for 1000ms then complete
-      await new Promise(r => setTimeout(r, 1000));
-      if (cancelled) return;
-      onComplete();
-    };
-
-    sequence();
-
-    return () => { cancelled = true; };
-  }, [onComplete]);
-
-  return (
-    <div className="fixed inset-0 z-[100] bg-black">
-      {step === "step1" && (
-        <Image
-          src="/step1.png"
-          alt=""
-          fill
-          className="object-cover"
-          priority
-        />
-      )}
-      {step === "step2" && (
-        <Image
-          src="/step2.png"
-          alt=""
-          fill
-          className="object-cover"
-          priority
-        />
-      )}
-    </div>
-  );
-}
-
 function LoadingFallback() {
   return (
     <div className="min-h-screen bg-white flex flex-col items-center justify-center gap-4">
@@ -88,27 +30,10 @@ function LoadingFallback() {
 }
 
 export default function Page() {
-  const [showSplash, setShowSplash] = useState(true);
-
-  // Check if we should skip splash (returning visitor in same session)
-  useEffect(() => {
-    if (sessionStorage.getItem("splashShown")) {
-      setShowSplash(false);
-    }
-  }, []);
-
-  const handleSplashComplete = useCallback(() => {
-    sessionStorage.setItem("splashShown", "true");
-    setShowSplash(false);
-  }, []);
-
   return (
-    <>
-      {showSplash && <SplashScreen onComplete={handleSplashComplete} />}
-      <Suspense fallback={<LoadingFallback />}>
-        <Home />
-      </Suspense>
-    </>
+    <Suspense fallback={<LoadingFallback />}>
+      <Home />
+    </Suspense>
   );
 }
 
