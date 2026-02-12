@@ -134,9 +134,27 @@
   }
   body {
     @apply bg-background text-foreground;
+    /* Fluid base font size: 14px at 320px viewport, 16px at 1200px */
+    font-size: clamp(0.875rem, 0.8rem + 0.25vw, 1rem);
   }
   h1, h2, h3, h4, h5, h6 {
     font-family: "neue-haas-grotesk-display", sans-serif !important;
+  }
+  /* Fluid typography scale */
+  .text-fluid-sm {
+    font-size: clamp(0.75rem, 0.7rem + 0.2vw, 0.875rem);
+  }
+  .text-fluid-base {
+    font-size: clamp(0.875rem, 0.8rem + 0.25vw, 1rem);
+  }
+  .text-fluid-lg {
+    font-size: clamp(1rem, 0.9rem + 0.4vw, 1.125rem);
+  }
+  .text-fluid-xl {
+    font-size: clamp(1.125rem, 1rem + 0.5vw, 1.5rem);
+  }
+  .text-fluid-2xl {
+    font-size: clamp(1.5rem, 1.2rem + 1vw, 2rem);
   }
 }
 
