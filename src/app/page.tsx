@@ -864,6 +864,7 @@ function Home() {
             height={400}
             className="absolute -bottom-14 -left-10 w-72 h-72 object-contain z-10 pointer-events-none"
           />
+          {/* Spotify player hidden for now
           <div
             className="cursor-grab active:cursor-grabbing"
             draggable
@@ -886,6 +887,7 @@ function Home() {
               loading="lazy"
             />
           </div>
+          */}
         </div>
       )}
 
