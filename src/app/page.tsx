@@ -824,7 +824,7 @@ function Home() {
       </div>
 
       {/* Header */}
-      {/* <a href="/" className="fixed top-6 left-6 z-40 cursor-pointer">
+      <a href="/" className="fixed top-6 left-6 z-40 cursor-pointer">
         <Image
           src="/logo.png"
           alt="Link Bouquet"
@@ -832,7 +832,7 @@ function Home() {
           height={88}
           className="h-10 md:h-14 w-auto"
         />
-      </a> */}
+      </a>
 
       {/* Turtle top right - hide on sharing page */}
       {!isViewingShared && (
