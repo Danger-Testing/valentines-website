@@ -11,6 +11,10 @@ export async function GET(request: NextRequest) {
   // Fetch the flowerhand.png image
   const imageUrl = new URL('/flowerhand.png', request.url).toString();
 
+  // Load Neue Haas Grotesk Display font
+  const fontUrl = new URL('/NeueHaasDisplayRoman.ttf', request.url).toString();
+  const fontData = await fetch(fontUrl).then((res) => res.arrayBuffer());
+
   return new ImageResponse(
     (
       <div
@@ -21,7 +25,7 @@ export async function GET(request: NextRequest) {
           alignItems: 'center',
           justifyContent: 'center',
           backgroundColor: '#ffffff',
-          fontFamily: 'Georgia, serif',
+          fontFamily: 'Neue Haas Grotesk Display',
           position: 'relative',
         }}
       >
@@ -93,6 +97,14 @@ export async function GET(request: NextRequest) {
     {
       width: 1200,
       height: 630,
+      fonts: [
+        {
+          name: 'Neue Haas Grotesk Display',
+          data: fontData,
+          style: 'normal',
+          weight: 400,
+        },
+      ],
     }
   );
 }
