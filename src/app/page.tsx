@@ -1181,6 +1181,18 @@ function Home() {
         </a>
       </div>
 
+      {/* Spotify embed bottom left */}
+      <div className="fixed bottom-4 left-4 md:bottom-6 md:left-6 z-40 hidden md:block">
+        <iframe
+          src="https://open.spotify.com/embed/track/32q1h0jij3ePpp47ShIqVy?utm_source=generator&theme=0"
+          width="300"
+          height="80"
+          className="rounded-xl"
+          allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
+          loading="lazy"
+        />
+      </div>
+
       {/* Left Sidebar with curated media */}
       {!isViewingShared && (
         <div
@@ -1369,26 +1381,30 @@ function Home() {
               {/* Pink square */}
               <button
                 onClick={() => setBgColor("#F77196")}
-                className="w-6 h-6 md:w-10 md:h-10 rounded md:rounded-lg bg-[#F77196] border-2 border-[#E6E6E6] hover:scale-110 transition-transform cursor-pointer"
+                className="w-8 h-8 md:w-10 md:h-10 rounded-lg bg-[#E6E6E6]/50 backdrop-blur-md hover:scale-110 transition-transform cursor-pointer flex items-center justify-center"
                 title="Pink background"
-              />
+              >
+                <div className="w-5 h-5 md:w-6 md:h-6 rounded bg-[#F77196]" />
+              </button>
               {/* Red square */}
               <button
                 onClick={() => setBgColor("#C2021B")}
-                className="w-6 h-6 md:w-10 md:h-10 rounded md:rounded-lg bg-[#C2021B] border-2 border-[#E6E6E6] hover:scale-110 transition-transform cursor-pointer"
+                className="w-8 h-8 md:w-10 md:h-10 rounded-lg bg-[#E6E6E6]/50 backdrop-blur-md hover:scale-110 transition-transform cursor-pointer flex items-center justify-center"
                 title="Red background"
-              />
+              >
+                <div className="w-5 h-5 md:w-6 md:h-6 rounded bg-[#C2021B]" />
+              </button>
               {/* Custom color picker square */}
-              <div className="relative w-6 h-6 md:w-10 md:h-10">
+              <div className="relative w-8 h-8 md:w-10 md:h-10 rounded-lg bg-[#E6E6E6]/50 backdrop-blur-md hover:scale-110 transition-transform cursor-pointer flex items-center justify-center">
                 <input
                   type="color"
                   value={bgColor}
                   onChange={(e) => setBgColor(e.target.value)}
-                  className="absolute inset-0 w-full h-full rounded md:rounded-lg cursor-pointer opacity-0"
+                  className="absolute inset-0 w-full h-full rounded-lg cursor-pointer opacity-0"
                   title="Custom color"
                 />
                 <div
-                  className="w-6 h-6 md:w-10 md:h-10 rounded md:rounded-lg border-2 border-[#E6E6E6] pointer-events-none"
+                  className="w-5 h-5 md:w-6 md:h-6 rounded pointer-events-none"
                   style={{
                     background: `conic-gradient(from 0deg, red, yellow, lime, aqua, blue, magenta, red)`,
                   }}
