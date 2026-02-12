@@ -197,6 +197,7 @@ function Home() {
     message: string;
     type: "error" | "success";
   } | null>(null);
+  const [justCreated, setJustCreated] = useState(false);
 
   const canvasRef = useRef<HTMLDivElement>(null);
   const modalRef = useRef<HTMLDivElement>(null);
@@ -212,6 +213,12 @@ function Home() {
     const slug = searchParams.get("b");
     if (slug) {
       setIsLoading(true);
+      // Check if we just created this bouquet
+      const createdSlug = sessionStorage.getItem("justCreated");
+      if (createdSlug === slug) {
+        setJustCreated(true);
+        sessionStorage.removeItem("justCreated");
+      }
       loadBouquet(slug).then((result) => {
         if ("error" in result) {
           showToast("Could not load bouquet: " + result.error, "error");
@@ -263,8 +270,9 @@ function Home() {
     setShowNoteModal(false);
     setIsSaving(false);
 
-    // Navigate to the shared page with created flag
-    window.location.href = `?b=${result.slug}&created=1`;
+    // Mark as just created and navigate to the shared page
+    sessionStorage.setItem("justCreated", result.slug);
+    window.location.href = `?b=${result.slug}`;
   };
 
   // Copy share URL to clipboard
@@ -943,13 +951,7 @@ function Home() {
             {(savedFromName || savedToName) && (
               <div className="flex items-center gap-2 mb-3">
                 <span className="text-black text-sm font-normal">{savedFromName || "?"}</span>
-                <Image
-                  src="/dynamicog.png"
-                  alt=""
-                  width={40}
-                  height={40}
-                  className="w-8 h-8 object-contain"
-                />
+                <span className="text-black/50 text-sm">+</span>
                 <span className="text-black text-sm font-normal">{savedToName || "?"}</span>
               </div>
             )}
@@ -1189,11 +1191,10 @@ function Home() {
       )}
 
       {/* Share URL display - only show when creator just saved */}
-      {isViewingShared && searchParams.get("created") === "1" && (
+      {isViewingShared && justCreated && (
         <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-40">
           <div className="bg-white/50 backdrop-blur-xl rounded-xl shadow-xl p-5 flex flex-col gap-3 min-w-[320px]">
-            <p className="text-black">Share this link with someone special:</p>
-            <div className="flex gap-2">
+                        <div className="flex gap-2">
               <input
                 type="text"
                 value={typeof window !== "undefined" ? `${window.location.origin}?b=${searchParams.get("b")}` : ""}
@@ -1222,8 +1223,8 @@ function Home() {
                 }}
                 className={`px-4 py-2 rounded-lg transition-colors font-medium cursor-pointer ${
                   copied
-                    ? "bg-[#DB234F]/60 text-white"
-                    : "bg-[#DB234F]/80 text-white"
+                    ? "bg-[#DB234F] text-white"
+                    : "bg-[#DB234F] text-white"
                 }`}
               >
                 {copied ? "Copied!" : "Share"}
@@ -1231,9 +1232,9 @@ function Home() {
             </div>
             <a
               href="/"
-              className="text-sm text-gray-500 hover:text-black transition-colors text-center"
+              className="text-sm text-black hover:text-black/70 transition-colors text-center"
             >
-              Continue editing
+              Create another one
             </a>
           </div>
         </div>
@@ -1255,28 +1256,21 @@ function Home() {
             <h2 id="save-modal-title" className="sr-only">
               Add a note to your bouquet
             </h2>
-            {/* From / To row with dynamicog.png */}
-            <div className="flex items-center gap-3 mb-4">
+            {/* From / To row */}
+            <div className="flex gap-3 mb-4">
               <input
                 type="text"
                 value={fromName}
                 onChange={(e) => setFromName(e.target.value)}
                 placeholder="From"
-                className="flex-1 px-4 py-2 rounded-xl border-none bg-black/10 focus:outline-none text-center font-normal"
-              />
-              <Image
-                src="/dynamicog.png"
-                alt=""
-                width={60}
-                height={60}
-                className="w-12 h-12 object-contain"
+                className="flex-1 min-w-0 px-4 py-3 rounded-lg border-none bg-black/10 focus:outline-none font-normal"
               />
               <input
                 type="text"
                 value={toName}
                 onChange={(e) => setToName(e.target.value)}
                 placeholder="To"
-                className="flex-1 px-4 py-2 rounded-xl border-none bg-black/10 focus:outline-none text-center font-normal"
+                className="flex-1 min-w-0 px-4 py-3 rounded-lg border-none bg-black/10 focus:outline-none font-normal"
               />
             </div>
             <textarea
