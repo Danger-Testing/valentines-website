@@ -98,6 +98,16 @@ const CURATED_MEDIA = [
     mediaId: "https://www.henrikkarlsson.xyz/p/looking-for-alice",
     label: "Looking for Alice",
   },
+  {
+    type: "youtube" as MediaType,
+    mediaId: "450p7goxZqg",
+    label: "John Legend",
+  },
+  {
+    type: "spotify" as MediaType,
+    mediaId: "track/3AJwUDP919kvQ9QcozQPxg",
+    label: "Perfect - Ed Sheeran",
+  },
 ];
 
 function Home() {
@@ -872,10 +882,10 @@ function Home() {
       {/* Left Sidebar with curated media */}
       {!isViewingShared && (
         <div
-          className={`fixed left-0 top-1/2 -translate-y-1/2 h-[60%] z-30 transition-transform duration-300 ${sidebarOpen ? "translate-x-0" : "-translate-x-[280px]"}`}
+          className={`fixed left-0 top-1/2 -translate-y-1/2 z-30 transition-transform duration-300 ${sidebarOpen ? "translate-x-0" : "-translate-x-[280px]"}`}
         >
-          <div className="w-[280px] h-full bg-[#E6E6E6]/50 backdrop-blur-md rounded-r-2xl py-6 flex flex-col relative">
-            <div className="flex-1 overflow-y-auto px-4 flex flex-col justify-center space-y-3">
+          <div className="w-[280px] bg-[#E6E6E6]/50 backdrop-blur-md rounded-r-2xl py-4 flex flex-col relative">
+            <div className="px-4 flex flex-col space-y-2">
               {CURATED_MEDIA.map((media, index) => (
                 <div
                   key={index}
