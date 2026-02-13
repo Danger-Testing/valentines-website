@@ -35,6 +35,7 @@ export interface BouquetData {
   bg_color?: string | null
   from_name?: string | null
   to_name?: string | null
+  is_gallery?: boolean
 }
 
 // Generate a short, readable slug for sharing
@@ -66,6 +67,7 @@ export async function saveBouquet(data: BouquetData): Promise<{ slug: string } |
       bg_color: data.bg_color || '#ffffff',
       from_name: data.from_name || null,
       to_name: data.to_name || null,
+      is_gallery: data.is_gallery || false,
     })
 
   if (error) {
@@ -104,4 +106,42 @@ export async function loadBouquet(slug: string): Promise<BouquetData | { error: 
     from_name: data.from_name as string | null,
     to_name: data.to_name as string | null,
   }
+}
+
+// Public bouquet data for gallery
+export interface PublicBouquet {
+  slug: string
+  image_url: string | null
+  bg_color: string | null
+  from_name: string | null
+  to_name: string | null
+  items: MediaItem[]
+  created_at: string
+}
+
+// Load all public bouquets for gallery (only those with is_gallery = true)
+export async function loadAllBouquets(): Promise<PublicBouquet[] | { error: string }> {
+  if (!supabase) {
+    return { error: 'Supabase not configured. Please set NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY.' }
+  }
+
+  const { data, error } = await supabase
+    .from('bouquets')
+    .select('slug, image_url, bg_color, from_name, to_name, items, created_at')
+    .eq('is_gallery', true)
+    .order('created_at', { ascending: false })
+
+  if (error) {
+    return { error: error.message }
+  }
+
+  return data.map(row => ({
+    slug: row.slug as string,
+    image_url: row.image_url as string | null,
+    bg_color: row.bg_color as string | null,
+    from_name: row.from_name as string | null,
+    to_name: row.to_name as string | null,
+    items: row.items as MediaItem[],
+    created_at: row.created_at as string,
+  }))
 }
