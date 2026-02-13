@@ -279,7 +279,7 @@ const CURATED_BUCKETS = [
   {
     name: "ceci",
     pfp: "/ceci.jpg",
-    link: "#",
+    link: "https://www.instagram.com/ceciliaazcarate/",
     media: [
       {
         type: "link" as MediaType,
