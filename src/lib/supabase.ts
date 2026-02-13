@@ -38,14 +38,14 @@ export interface BouquetData {
   is_gallery?: boolean
 }
 
-// Generate a short, readable slug for sharing
+// Generate a short, readable slug for sharing using Latin flower names
 export function generateSlug(): string {
-  const adjectives = ['sweet', 'lovely', 'dear', 'precious', 'tender', 'gentle', 'warm', 'bright', 'rosy', 'golden']
-  const nouns = ['heart', 'rose', 'bloom', 'petal', 'garden', 'dream', 'wish', 'kiss', 'hug', 'love']
-  const adj = adjectives[Math.floor(Math.random() * adjectives.length)]
-  const noun = nouns[Math.floor(Math.random() * nouns.length)]
+  const genus = ['rosa', 'tulipa', 'lilium', 'orchis', 'viola', 'dahlia', 'iris', 'peonia', 'camellia', 'magnolia', 'lotus', 'crocus', 'aster', 'salvia', 'primula']
+  const species = ['alba', 'rubra', 'aurea', 'purpurea', 'elegans', 'flora', 'bella', 'serena', 'stellata', 'grandiflora', 'minor', 'major', 'verna', 'sylvestris', 'orientalis']
+  const g = genus[Math.floor(Math.random() * genus.length)]
+  const s = species[Math.floor(Math.random() * species.length)]
   const num = Math.floor(Math.random() * 9999).toString().padStart(4, '0')
-  return `${adj}-${noun}-${num}`
+  return `${g}-${s}-${num}`
 }
 
 // Save a bouquet to Supabase
