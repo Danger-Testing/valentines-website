@@ -1197,7 +1197,10 @@ function Home() {
                       }),
                     );
                   }}
-                  onClick={() => addItem(media.type, media.mediaId)}
+                  onClick={() => {
+                    addItem(media.type, media.mediaId);
+                    setSidebarOpen(false);
+                  }}
                   className="w-full p-3 bg-white hover:bg-white/90 rounded-lg transition-colors text-left flex items-center gap-3 cursor-grab active:cursor-grabbing"
                 >
                   {media.type === "youtube" && (

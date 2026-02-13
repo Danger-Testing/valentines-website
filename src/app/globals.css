@@ -137,6 +137,15 @@
     /* Fluid base font size: 14px at 320px viewport, 16px at 1200px */
     font-size: clamp(0.875rem, 0.8rem + 0.25vw, 1rem);
   }
+  /* Disable scrolling on mobile */
+  @media (max-width: 768px) {
+    html, body {
+      overflow: hidden;
+      position: fixed;
+      width: 100%;
+      height: 100%;
+    }
+  }
   h1, h2, h3, h4, h5, h6 {
     font-family: "neue-haas-grotesk-display", sans-serif !important;
   }
