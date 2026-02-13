@@ -362,6 +362,9 @@ function Home() {
     type: "error" | "success";
   } | null>(null);
   const [justCreated, setJustCreated] = useState(false);
+  const [showEmailModal, setShowEmailModal] = useState(false);
+  const [email, setEmail] = useState("");
+  const [emailSubmitting, setEmailSubmitting] = useState(false);
 
   const canvasRef = useRef<HTMLDivElement>(null);
   const modalRef = useRef<HTMLDivElement>(null);
@@ -382,6 +385,7 @@ function Home() {
       const createdSlug = sessionStorage.getItem("justCreated");
       if (createdSlug === slug) {
         setJustCreated(true);
+        setShowEmailModal(true);
         sessionStorage.removeItem("justCreated");
       }
       loadBouquet(slug).then((result) => {
@@ -790,6 +794,30 @@ function Home() {
     setItems(items.filter((i) => i.id !== id));
   };
 
+  // Handle email subscription
+  const handleEmailSubmit = async () => {
+    setEmailSubmitting(true);
+    try {
+      const res = await fetch("/api/subscribe", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email }),
+      });
+      if (!res.ok) {
+        const data = await res.json();
+        console.error("Subscribe error:", data.error);
+      }
+    } catch (err) {
+      console.error("Subscribe error:", err);
+    }
+    setEmailSubmitting(false);
+    setShowEmailModal(false);
+  };
+
+  const handleSkipEmail = () => {
+    setShowEmailModal(false);
+  };
+
   // Arrange items in a nice pattern around the bouquet
   const arrangeItems = () => {
     if (items.length === 0) return;
@@ -1086,7 +1114,10 @@ function Home() {
       </a>
 
       {/* Link image bottom left */}
-      <div className="fixed bottom-0 left-0 z-40 hidden md:block pointer-events-none">
+      <button
+        onClick={() => setShowEmailModal(true)}
+        className="fixed bottom-0 left-0 z-40 hidden md:block cursor-pointer"
+      >
         <Image
           src="/link.png"
           alt=""
@@ -1094,14 +1125,12 @@ function Home() {
           height={400}
           className="w-36 h-36 object-contain"
         />
-      </div>
+      </button>
 
       {/* Turtle top right */}
       <div className="fixed top-4 right-4 md:top-6 md:right-6 z-40">
-        <a
-          href="https://dangertesting.com"
-          target="_blank"
-          rel="noopener noreferrer"
+        <button
+          onClick={() => setShowEmailModal(true)}
           className="cursor-pointer"
         >
           <Image
@@ -1111,7 +1140,7 @@ function Home() {
             height={150}
             className="w-12 h-12 md:w-20 md:h-20"
           />
-        </a>
+        </button>
       </div>
 
 
@@ -1597,6 +1626,62 @@ function Home() {
               ×
             </button>
             {renderEmbed(showModal, true)}
+          </div>
+        </div>
+      )}
+
+      {/* Email Modal */}
+      {showEmailModal && (
+        <div className="fixed inset-0 bg-black/10 backdrop-blur-md flex items-center justify-center z-50 p-4">
+          <div className="bg-white/50 backdrop-blur-xl w-full max-w-sm p-8 relative rounded-2xl shadow-xl">
+            <button
+              type="button"
+              onClick={handleSkipEmail}
+              className="absolute top-4 right-4 text-black/40 hover:text-black text-2xl leading-none"
+              aria-label="Close"
+            >
+              ×
+            </button>
+
+            <div className="text-center">
+              <img
+                src="/us.png"
+                alt="Danger Testing"
+                className="h-24 mx-auto mb-4"
+              />
+
+              <h2 className="text-lg tracking-wide lowercase mb-2 font-bold">we&apos;re marc and los.</h2>
+              <p className="text-sm text-black mb-6 leading-relaxed">
+                we&apos;re trying to make the internet fun again. we drop apps like this every week. would mean a lot if you entered your email.
+              </p>
+
+              <div className="space-y-3">
+                <input
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="Enter your email"
+                  className="w-full px-4 py-3 bg-black/10 rounded-lg text-black text-sm border-none focus:outline-none"
+                />
+
+                <button
+                  type="button"
+                  onClick={handleEmailSubmit}
+                  disabled={emailSubmitting || !email.trim()}
+                  className="w-full bg-[#DB234F] text-white px-4 py-3 text-sm tracking-wide disabled:opacity-30 disabled:pointer-events-none hover:bg-[#B81D42] transition-colors rounded-lg font-medium"
+                >
+                  {emailSubmitting ? "..." : "Subscribe"}
+                </button>
+
+                <button
+                  type="button"
+                  onClick={handleSkipEmail}
+                  className="text-sm underline text-black/50 hover:text-black transition-colors"
+                >
+                  Skip
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       )}
