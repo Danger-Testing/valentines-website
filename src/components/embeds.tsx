@@ -87,13 +87,12 @@ export function SpotifyEmbed({
 
   if (isModal) {
     return (
-      <div className="w-[400px] h-[352px] rounded-xl overflow-hidden shadow-lg">
+      <div className="w-[400px] h-[152px] rounded-xl overflow-hidden shadow-lg">
         <iframe
           src={embedUrl}
-          width="480"
-          height="352"
+          width="400"
+          height="152"
           className="border-0"
-          style={{ marginRight: "-80px" }}
           allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
           loading="lazy"
         />
@@ -101,13 +100,12 @@ export function SpotifyEmbed({
     );
   }
   return (
-    <div className="w-[220px] h-[80px] rounded-xl overflow-hidden shadow-lg">
+    <div className="w-[300px] h-[80px] rounded-xl overflow-hidden shadow-lg">
       <iframe
         src={embedUrl}
-        width="340"
+        width="300"
         height="80"
         className="border-0 pointer-events-none"
-        style={{ marginRight: "-120px" }}
         allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
         loading="lazy"
       />
