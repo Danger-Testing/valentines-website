@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { Analytics } from "@vercel/analytics/next";
+import Script from "next/script";
 import "./globals.css";
 import { cecilia } from "./fonts";
 
@@ -66,6 +67,12 @@ export default function RootLayout({
       >
         {children}
         <Analytics />
+        <Script
+          async
+          src="https://appstar.world/widget.js"
+          data-appstar-widget="d632faff-6628-446c-9c3f-b3e1e709018c"
+          strategy="lazyOnload"
+        />
       </body>
     </html>
   );
