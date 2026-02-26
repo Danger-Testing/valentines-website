@@ -70,7 +70,7 @@ export default function RootLayout({
         <Script
           async
           src="https://appstar.world/widget.js"
-          data-appstar-widget="d632faff-6628-446c-9c3f-b3e1e709018c"
+          data-appstar-app="7457adaf-60a0-4484-b8e1-45af087c078b"
           strategy="lazyOnload"
         />
       </body>
