@@ -342,7 +342,9 @@ function Home() {
   const [isLoading, setIsLoading] = useState(false);
   const [isViewingShared, setIsViewingShared] = useState(false);
   const [copied, setCopied] = useState(false);
-  const [flowerImage, setFlowerImage] = useState<"flowers" | "flowers2">(
+  const FLOWER_OPTIONS = ["flowers", "flowers2", "5", "1", "2", "3", "4", "6", "7"] as const;
+  type FlowerOption = typeof FLOWER_OPTIONS[number];
+  const [flowerImage, setFlowerImage] = useState<FlowerOption>(
     "flowers",
   );
   const [bgColor, setBgColor] = useState("#ffffff");
@@ -406,11 +408,8 @@ function Home() {
           setToName(result.to_name || "");
         }
         // Set the flower image based on saved image_url
-        if (result.image_url === "/flowers2.png") {
-          setFlowerImage("flowers2");
-        } else {
-          setFlowerImage("flowers");
-        }
+        const match = FLOWER_OPTIONS.find(opt => result.image_url === `/${opt}.png`);
+        setFlowerImage(match || "flowers");
         // Only set as viewing shared if not in edit mode
         if (isEditMode) {
           setIsViewingShared(false);
@@ -909,6 +908,19 @@ function Home() {
       onTouchMove={handleTouchMove}
       onTouchEnd={handleTouchEnd}
     >
+      {/* Full page background for 5.png */}
+      {flowerImage === "5" && (
+        <div className="absolute inset-0 z-0 bg-black">
+          <Image
+            src="/5.png"
+            alt="Flower background"
+            fill
+            className="object-contain select-none"
+            draggable={false}
+            priority
+          />
+        </div>
+      )}
       {/* Canvas area - centered, always maintains 3:4 aspect ratio */}
       <div className="absolute inset-0 flex items-center justify-center overflow-hidden p-4">
         <div
@@ -941,12 +953,13 @@ function Home() {
           }}
         >
           {/* Flowers background */}
-          <div className="absolute inset-x-0 -bottom-[40%] -top-[10%]">
+          {flowerImage !== "5" && (
+          <div className={`absolute inset-x-0 ${["1","2","3","4","6","7"].includes(flowerImage) ? "-bottom-[2%] -top-[50%]" : "-bottom-[40%] -top-[10%]"}`}>
             <Image
               src={`/${flowerImage}.png`}
               alt="Flower bouquet"
               fill
-              className="object-contain select-none"
+              className={`${["1","2","3","4","6","7"].includes(flowerImage) ? "object-contain object-bottom" : "object-contain"} select-none`}
               draggable={false}
               priority
             />
@@ -971,6 +984,7 @@ function Home() {
               />
             )}
           </div>
+          )}
 
           {/* Empty state prompt */}
           {!isViewingShared && items.length === 0 && (
@@ -1110,6 +1124,7 @@ function Home() {
           width={500}
           height={400}
           className="h-36 md:h-56 w-auto"
+          style={flowerImage === "5" ? { filter: "brightness(0) saturate(100%) invert(24%) sepia(95%) saturate(4000%) hue-rotate(355deg) brightness(97%) contrast(95%)" } : undefined}
         />
       </a>
 
@@ -1325,30 +1340,24 @@ function Home() {
         <div className="fixed bottom-6 left-4 right-4 md:left-auto md:right-6 flex justify-between md:justify-start gap-3 z-40 md:flex-col md:w-40">
           {/* Left column on mobile / Top on desktop: Flower toggle + colors */}
           <div className="flex flex-col gap-2 items-center justify-end md:justify-start">
-            {/* Flower toggle button */}
-            <button
-              onClick={() =>
-                setFlowerImage(flowerImage === "flowers" ? "flowers2" : "flowers")
-              }
-              className="w-20 md:w-full rounded-lg bg-[#E6E6E6]/50 backdrop-blur-md transition-all overflow-hidden cursor-pointer relative group"
-            >
-              <Image
-                src={`/${flowerImage === "flowers" ? "flowers2" : "flowers"}.png`}
-                alt="Switch flowers"
-                width={160}
-                height={200}
-                className="w-full h-auto"
-              />
-              <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center bg-black/40">
-                <span className="text-white font-medium text-center text-xs md:text-base">
-                  Change
-                  <span className="hidden md:inline">
-                    <br />
-                    Flower
-                  </span>
-                </span>
-              </div>
-            </button>
+            {/* Flower grid selector */}
+            <div className="grid grid-cols-3 gap-1.5 md:gap-2">
+              {FLOWER_OPTIONS.map((option) => (
+                <button
+                  key={option}
+                  onClick={() => setFlowerImage(option)}
+                  className={`w-7 h-7 md:w-10 md:h-10 rounded-lg overflow-hidden cursor-pointer transition-all ${flowerImage === option ? "ring-2 ring-white scale-110" : "bg-[#E6E6E6]/50 backdrop-blur-md hover:scale-110"}`}
+                >
+                  <Image
+                    src={`/${option}.png`}
+                    alt={`Flower ${option}`}
+                    width={80}
+                    height={80}
+                    className="w-full h-full object-cover"
+                  />
+                </button>
+              ))}
+            </div>
 
             {/* Background color picker squares */}
             <div className="flex justify-center gap-2 md:gap-3 md:py-2">
