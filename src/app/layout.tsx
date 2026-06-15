@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { Analytics } from "@vercel/analytics/next";
 import Script from "next/script";
+import { ExternalLink } from "lucide-react";
 import "./globals.css";
 import { cecilia } from "./fonts";
 
@@ -14,6 +15,8 @@ const geistMono = Geist_Mono({
   variable: "--font-geist-mono",
   subsets: ["latin"],
 });
+
+const APPDROP_URL = "https://www.appdrop.com/marcgmbh/link-bouquet";
 
 export const viewport: Viewport = {
   width: "device-width",
@@ -61,18 +64,26 @@ export default function RootLayout({
     <html lang="en">
       <head>
         <link rel="stylesheet" href="https://use.typekit.net/rpg0yth.css" />
+        <Script
+          src="https://www.appdrop.com/appdrop-sdk.js"
+          strategy="beforeInteractive"
+        />
       </head>
       <body
         className={`${geistSans.variable} ${geistMono.variable} ${cecilia.variable} antialiased`}
       >
         {children}
         <Analytics />
-        <Script
-          async
-          src="https://appstar.world/widget.js"
-          data-appstar-app="7457adaf-60a0-4484-b8e1-45af087c078b"
-          strategy="lazyOnload"
-        />
+        <a
+          href={APPDROP_URL}
+          target="_blank"
+          rel="noopener noreferrer"
+          aria-label="Open Link Bouquet on Appdrop"
+          className="fixed left-1/2 top-4 z-50 inline-flex -translate-x-1/2 items-center gap-1.5 rounded-lg bg-white/60 px-3 py-2 text-xs font-medium text-black shadow-sm backdrop-blur-md transition hover:bg-white/80 focus:outline-none focus:ring-2 focus:ring-black/30 md:top-6"
+        >
+          <span>Appdrop</span>
+          <ExternalLink aria-hidden="true" className="h-3.5 w-3.5" />
+        </a>
       </body>
     </html>
   );

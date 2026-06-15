@@ -1,0 +1,29 @@
+{
+  "name": "Link Bouquet",
+  "slug": "link-bouquet",
+  "description": "Create and share beautiful bouquets of your favorite links.",
+  "runtime": "nextjs",
+  "entry": "worker",
+  "spaMode": false,
+  "permissions": ["profile:basic", "outputs:create"],
+  "outputs": [
+    {
+      "type": "link_bouquet",
+      "displayName": "Link Bouquet",
+      "schemaVersion": 1,
+      "jsonSchema": {
+        "type": "object",
+        "required": ["flowers"],
+        "properties": {
+          "theme": { "type": "string" },
+          "flowers": { "type": "array" }
+        }
+      },
+      "renderer": {
+        "titlePath": "title",
+        "previewImagePath": "preview_image_url",
+        "openAction": "source_url"
+      }
+    }
+  ]
+}
