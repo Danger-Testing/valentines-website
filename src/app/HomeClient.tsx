@@ -9,6 +9,10 @@ import {
   type MediaItem,
   type MediaType,
 } from "@/lib/supabase";
+import {
+  subscribeThenHandoff,
+  type AppdropFollowApi,
+} from "@/lib/appdrop-subscribe-handoff";
 import { cecilia } from "./fonts";
 import {
   InstagramEmbed,
@@ -19,6 +23,12 @@ import {
   LetterboxdEmbed,
   LinkEmbed,
 } from "@/components/embeds";
+
+declare global {
+  interface Window {
+    AppdropFollow?: AppdropFollowApi;
+  }
+}
 
 export function LoadingFallback() {
   return (
@@ -842,15 +852,23 @@ function Home() {
   const handleEmailSubmit = async () => {
     setEmailSubmitting(true);
     try {
-      const res = await fetch("/api/subscribe", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email }),
+      await subscribeThenHandoff({
+        assign: (url) => window.location.assign(url),
+        email,
+        follow: window.AppdropFollow,
+        subscribe: async () => {
+          const res = await fetch("/api/subscribe", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ email }),
+          });
+          if (!res.ok) {
+            const data = await res.json();
+            console.error("Subscribe error:", data.error);
+          }
+          return res;
+        },
       });
-      if (!res.ok) {
-        const data = await res.json();
-        console.error("Subscribe error:", data.error);
-      }
     } catch (err) {
       console.error("Subscribe error:", err);
     }

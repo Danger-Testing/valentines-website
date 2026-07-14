@@ -88,6 +88,12 @@ export default function RootLayout({
           strategy="beforeInteractive"
         />
         <Script
+          src="https://www.appdrop.com/appdrop-follow.js"
+          data-appdrop-creator="marcgmbh"
+          data-appdrop-source="linkbouquet"
+          strategy="beforeInteractive"
+        />
+        <Script
           id="appdrop-standalone-redirect"
           strategy="beforeInteractive"
           dangerouslySetInnerHTML={{ __html: STANDALONE_REDIRECT_SCRIPT }}
