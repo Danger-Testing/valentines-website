@@ -15,28 +15,6 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
-const APPDROP_URL = "https://www.appdrop.com/marcgmbh/link-bouquet";
-const APPDROP_APP_URL = "https://www.appdrop.com/app/link-bouquet";
-const STANDALONE_REDIRECT_SCRIPT = `
-  (function () {
-    try {
-      if (window.self !== window.top) return;
-
-      var host = window.location.hostname;
-      if (host === "localhost" || host === "127.0.0.1" || host === "::1") return;
-
-      var hasState = Boolean(window.location.search || window.location.hash);
-      var target = new URL(hasState ? "${APPDROP_APP_URL}" : "${APPDROP_URL}");
-
-      if (hasState) {
-        target.searchParams.set("url", window.location.href);
-      }
-
-      window.location.replace(target.toString());
-    } catch (error) {}
-  })();
-`;
-
 export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
@@ -86,17 +64,6 @@ export default function RootLayout({
         <Script
           src="https://www.appdrop.com/appdrop-sdk.js"
           strategy="beforeInteractive"
-        />
-        <Script
-          src="https://www.appdrop.com/appdrop-follow.js"
-          data-appdrop-creator="marcgmbh"
-          data-appdrop-source="linkbouquet"
-          strategy="beforeInteractive"
-        />
-        <Script
-          id="appdrop-standalone-redirect"
-          strategy="beforeInteractive"
-          dangerouslySetInnerHTML={{ __html: STANDALONE_REDIRECT_SCRIPT }}
         />
       </head>
       <body
