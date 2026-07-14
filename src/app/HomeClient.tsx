@@ -20,26 +20,6 @@ import {
   LinkEmbed,
 } from "@/components/embeds";
 
-type AppdropOutputVisibility = "private" | "unlisted" | "public";
-
-type AppdropSaveOutput = {
-  output_type: string;
-  title: string;
-  summary: string | null;
-  source_url: string;
-  visibility: AppdropOutputVisibility;
-  data: Record<string, unknown>;
-};
-
-declare global {
-  interface Window {
-    appdrop?: {
-      isEmbedded?: () => boolean;
-      saveOutput?: (output: AppdropSaveOutput) => Promise<unknown>;
-    };
-  }
-}
-
 export function LoadingFallback() {
   return (
     <div className="min-h-screen bg-white flex flex-col items-center justify-center gap-4">
@@ -340,87 +320,6 @@ const CURATED_BUCKETS = [
   },
 ];
 
-function getBouquetTitle(fromName: string, toName: string) {
-  const from = fromName.trim();
-  const to = toName.trim();
-
-  if (from && to) {
-    return `${from} + ${to}'s Link Bouquet`;
-  }
-
-  if (from) {
-    return `${from}'s Link Bouquet`;
-  }
-
-  if (to) {
-    return `Link Bouquet for ${to}`;
-  }
-
-  return "Link Bouquet";
-}
-
-function getBouquetSummary(note: string, itemCount: number) {
-  const trimmedNote = note.trim();
-
-  if (trimmedNote) {
-    return trimmedNote.slice(0, 500);
-  }
-
-  return `A bouquet with ${itemCount} ${itemCount === 1 ? "link" : "links"}.`;
-}
-
-async function saveBouquetToAppdrop({
-  bgColor,
-  flowerImage,
-  fromName,
-  isGallery,
-  items,
-  note,
-  slug,
-  toName,
-  url,
-}: {
-  bgColor: string;
-  flowerImage: string;
-  fromName: string;
-  isGallery: boolean;
-  items: MediaItem[];
-  note: string;
-  slug: string;
-  toName: string;
-  url: string;
-}) {
-  if (!window.appdrop?.isEmbedded?.() || !window.appdrop.saveOutput) {
-    return;
-  }
-
-  await window.appdrop.saveOutput({
-    output_type: "link_bouquet",
-    title: getBouquetTitle(fromName, toName),
-    summary: getBouquetSummary(note, items.length),
-    source_url: url,
-    visibility: isGallery ? "public" : "private",
-    data: {
-      bg_color: bgColor,
-      flowers: items.map((item) => ({
-        mediaId: item.mediaId,
-        rotation: item.rotation,
-        scale: item.scale,
-        type: item.type,
-        x: item.x,
-        y: item.y,
-      })),
-      from_name: fromName.trim() || null,
-      image_url: `/${flowerImage}.png`,
-      items,
-      note: note.trim() || null,
-      slug,
-      to_name: toName.trim() || null,
-      url,
-    },
-  });
-}
-
 function Home() {
   const searchParams = useSearchParams();
 
@@ -547,20 +446,6 @@ function Home() {
     }
 
     const url = `${window.location.origin}?b=${result.slug}`;
-    await saveBouquetToAppdrop({
-      bgColor,
-      flowerImage,
-      fromName,
-      isGallery,
-      items,
-      note,
-      slug: result.slug,
-      toName,
-      url,
-    }).catch((error) => {
-      console.info("appdrop: bouquet output save skipped", error);
-    });
-
     setShareUrl(url);
     setShowNoteModal(false);
     setIsSaving(false);
@@ -570,12 +455,55 @@ function Home() {
     window.location.href = `?b=${result.slug}`;
   };
 
-  // Copy share URL to clipboard
-  const copyShareUrl = async () => {
-    if (!shareUrl) return;
-    await navigator.clipboard.writeText(shareUrl);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
+  // Copy share URL to clipboard, including browsers that block navigator.clipboard.
+  const copyText = async (text: string) => {
+    try {
+      if (navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(text);
+        return true;
+      }
+    } catch {
+      // Fall back to the older copy path below.
+    }
+
+    try {
+      const textarea = document.createElement("textarea");
+      textarea.value = text;
+      textarea.setAttribute("readonly", "");
+      textarea.style.position = "fixed";
+      textarea.style.opacity = "0";
+      document.body.appendChild(textarea);
+      textarea.select();
+      const copied = document.execCommand("copy");
+      document.body.removeChild(textarea);
+      return copied;
+    } catch {
+      return false;
+    }
+  };
+
+  const shareBouquet = async (url: string) => {
+    if (
+      navigator.share &&
+      /iPhone|iPad|iPod|Android/i.test(navigator.userAgent)
+    ) {
+      try {
+        await navigator.share({ url });
+        return;
+      } catch (error) {
+        if (error instanceof DOMException && error.name === "AbortError") {
+          return;
+        }
+      }
+    }
+
+    const copiedSuccessfully = await copyText(url);
+    if (copiedSuccessfully) {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } else {
+      showToast("Could not copy the share link. Please copy it manually.", "error");
+    }
   };
 
   // URL parsing
@@ -1551,25 +1479,9 @@ function Home() {
                 className="flex-1 px-4 py-2 bg-black/10 rounded-lg text-black text-sm border-none"
               />
               <button
-                onClick={async () => {
-                  const shareUrl = `${window.location.origin}?b=${searchParams.get("b")}`;
-                  if (
-                    navigator.share &&
-                    /iPhone|iPad|iPod|Android/i.test(navigator.userAgent)
-                  ) {
-                    try {
-                      await navigator.share({ url: shareUrl });
-                    } catch {
-                      await navigator.clipboard.writeText(shareUrl);
-                      setCopied(true);
-                      setTimeout(() => setCopied(false), 2000);
-                    }
-                  } else {
-                    await navigator.clipboard.writeText(shareUrl);
-                    setCopied(true);
-                    setTimeout(() => setCopied(false), 2000);
-                  }
-                }}
+                onClick={() =>
+                  shareBouquet(`${window.location.origin}?b=${searchParams.get("b")}`)
+                }
                 className={`px-4 py-2 rounded-lg transition-colors font-medium cursor-pointer ${
                   copied
                     ? "bg-[#DB234F] text-white"
