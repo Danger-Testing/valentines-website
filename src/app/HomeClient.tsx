@@ -20,6 +20,26 @@ import {
   LinkEmbed,
 } from "@/components/embeds";
 
+type AppdropOutputVisibility = "private" | "unlisted" | "public";
+
+type AppdropSaveOutput = {
+  output_type: string;
+  title: string;
+  summary: string | null;
+  source_url: string;
+  visibility: AppdropOutputVisibility;
+  data: Record<string, unknown>;
+};
+
+declare global {
+  interface Window {
+    appdrop?: {
+      isEmbedded?: () => boolean;
+      saveOutput?: (output: AppdropSaveOutput) => Promise<unknown>;
+    };
+  }
+}
+
 export function LoadingFallback() {
   return (
     <div className="min-h-screen bg-white flex flex-col items-center justify-center gap-4">
@@ -320,6 +340,87 @@ const CURATED_BUCKETS = [
   },
 ];
 
+function getBouquetTitle(fromName: string, toName: string) {
+  const from = fromName.trim();
+  const to = toName.trim();
+
+  if (from && to) {
+    return `${from} + ${to}'s Link Bouquet`;
+  }
+
+  if (from) {
+    return `${from}'s Link Bouquet`;
+  }
+
+  if (to) {
+    return `Link Bouquet for ${to}`;
+  }
+
+  return "Link Bouquet";
+}
+
+function getBouquetSummary(note: string, itemCount: number) {
+  const trimmedNote = note.trim();
+
+  if (trimmedNote) {
+    return trimmedNote.slice(0, 500);
+  }
+
+  return `A bouquet with ${itemCount} ${itemCount === 1 ? "link" : "links"}.`;
+}
+
+async function saveBouquetToAppdrop({
+  bgColor,
+  flowerImage,
+  fromName,
+  items,
+  note,
+  slug,
+  toName,
+  url,
+}: {
+  bgColor: string;
+  flowerImage: string;
+  fromName: string;
+  items: MediaItem[];
+  note: string;
+  slug: string;
+  toName: string;
+  url: string;
+}) {
+  if (!window.appdrop?.isEmbedded?.() || !window.appdrop.saveOutput) {
+    return;
+  }
+
+  await window.appdrop.saveOutput({
+    output_type: "link_bouquet",
+    title: getBouquetTitle(fromName, toName),
+    summary: getBouquetSummary(note, items.length),
+    source_url: url,
+    // Appdrop chat publishing is a separate opt-in from Link Bouquet's own
+    // public gallery. Keep the output private until the user taps Send.
+    visibility: "private",
+    data: {
+      bg_color: bgColor,
+      flowers: items.map((item) => ({
+        mediaId: item.mediaId,
+        rotation: item.rotation,
+        scale: item.scale,
+        type: item.type,
+        x: item.x,
+        y: item.y,
+      })),
+      from_name: fromName.trim() || null,
+      image_url: `/${flowerImage}.png`,
+      items,
+      note: note.trim() || null,
+      slug,
+      to_name: toName.trim() || null,
+      url,
+    },
+  });
+}
+
 function Home() {
   const searchParams = useSearchParams();
 
@@ -446,6 +547,21 @@ function Home() {
     }
 
     const url = `${window.location.origin}?b=${result.slug}`;
+    await saveBouquetToAppdrop({
+      bgColor,
+      flowerImage,
+      fromName,
+      items,
+      note,
+      slug: result.slug,
+      toName,
+      url,
+    }).catch((error) => {
+      // The standalone Link Bouquet save should still finish if Appdrop is
+      // unavailable, while the parent can surface its own save error.
+      console.info("appdrop: bouquet output save skipped", error);
+    });
+
     setShareUrl(url);
     setShowNoteModal(false);
     setIsSaving(false);
