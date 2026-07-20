@@ -1,6 +1,12 @@
 "use client";
 
-import { useState, useRef, useCallback, useEffect, Suspense } from "react";
+import {
+  useState,
+  useRef,
+  useCallback,
+  useEffect,
+  Suspense,
+} from "react";
 import { useSearchParams } from "next/navigation";
 import Image from "next/image";
 import {
@@ -364,9 +370,6 @@ function Home() {
     type: "error" | "success";
   } | null>(null);
   const [justCreated, setJustCreated] = useState(false);
-  const [showEmailModal, setShowEmailModal] = useState(false);
-  const [email, setEmail] = useState("");
-  const [emailSubmitting, setEmailSubmitting] = useState(false);
 
   const canvasRef = useRef<HTMLDivElement>(null);
   const modalRef = useRef<HTMLDivElement>(null);
@@ -387,7 +390,6 @@ function Home() {
       const createdSlug = sessionStorage.getItem("justCreated");
       if (createdSlug === slug) {
         setJustCreated(true);
-        setShowEmailModal(true);
         sessionStorage.removeItem("justCreated");
       }
       loadBouquet(slug).then((result) => {
@@ -838,30 +840,6 @@ function Home() {
     setItems(items.filter((i) => i.id !== id));
   };
 
-  // Handle email subscription
-  const handleEmailSubmit = async () => {
-    setEmailSubmitting(true);
-    try {
-      const res = await fetch("/api/subscribe", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email }),
-      });
-      if (!res.ok) {
-        const data = await res.json();
-        console.error("Subscribe error:", data.error);
-      }
-    } catch (err) {
-      console.error("Subscribe error:", err);
-    }
-    setEmailSubmitting(false);
-    setShowEmailModal(false);
-  };
-
-  const handleSkipEmail = () => {
-    setShowEmailModal(false);
-  };
-
   // Arrange items in a nice pattern around the bouquet
   const arrangeItems = () => {
     if (items.length === 0) return;
@@ -999,7 +977,7 @@ function Home() {
         >
           {/* Flowers background */}
           {flowerImage !== "5" && (
-          <div className={`absolute inset-x-0 ${["1","2","3","4","6","7"].includes(flowerImage) ? "-bottom-[2%] -top-[50%]" : "-bottom-[40%] -top-[10%]"}`}>
+          <div className={`absolute inset-x-[8%] md:inset-x-0 ${["1","2","3","4","6","7"].includes(flowerImage) ? "-bottom-[2%] -top-[50%]" : "-bottom-[40%] -top-[10%]"}`}>
             <Image
               src={`/${flowerImage}.png`}
               alt="Flower bouquet"
@@ -1162,47 +1140,35 @@ function Home() {
       </div>
 
       {/* Header */}
-      <a href="/" className="fixed top-4 left-4 md:top-6 md:left-6 z-20 cursor-pointer">
+      <a href="/" className="fixed top-3 left-3 sm:top-4 sm:left-4 md:top-6 md:left-6 z-20 cursor-pointer">
         <Image
           src="/logo.png"
           alt="Link Bouquet"
           width={500}
           height={400}
-          className="h-36 md:h-56 w-auto"
+          className="h-24 sm:h-32 md:h-40 lg:h-48 xl:h-56 w-auto"
           style={flowerImage === "5" ? { filter: "brightness(0) saturate(100%) invert(24%) sepia(95%) saturate(4000%) hue-rotate(355deg) brightness(97%) contrast(95%)" } : undefined}
         />
       </a>
 
-      {/* Link image bottom left */}
-      <button
-        onClick={() => setShowEmailModal(true)}
-        className="fixed bottom-0 left-0 z-40 hidden md:block cursor-pointer"
+      {/* Follow button */}
+      <a
+        href="https://x.com/immike_wing"
+        target="_blank"
+        rel="noopener noreferrer"
+        className="fixed bottom-1 left-1/2 z-[45] block w-[min(56vw,16rem)] -translate-x-1/2 cursor-pointer transition-transform duration-200 hover:-translate-y-1 focus:outline-none md:bottom-2"
+        aria-label="Follow Mike Wing for apps"
       >
         <Image
-          src="/link.png"
-          alt=""
-          width={400}
-          height={400}
-          className="w-36 h-36 object-contain"
+          src="/follow-mike-button.png"
+          alt="Follow Mike Wing for apps"
+          width={426}
+          height={163}
+          sizes="(max-width: 640px) 56vw, 256px"
+          className="block h-auto w-full select-none"
+          draggable={false}
         />
-      </button>
-
-      {/* Turtle top right */}
-      <div className="fixed top-4 right-4 md:top-6 md:right-6 z-40">
-        <button
-          onClick={() => setShowEmailModal(true)}
-          className="cursor-pointer"
-        >
-          <Image
-            src="/turtle.png"
-            alt="Turtle"
-            width={150}
-            height={150}
-            className="w-12 h-12 md:w-20 md:h-20"
-          />
-        </button>
-      </div>
-
+      </a>
 
       {/* Note display bottom right - only on sharing page */}
       {isViewingShared && (savedNote || savedFromName || savedToName) && (
@@ -1382,7 +1348,7 @@ function Home() {
 
       {/* Bottom toolbar - only show when editing */}
       {!isViewingShared && !shareUrl && (
-        <div className="fixed bottom-6 left-4 right-4 md:left-auto md:right-6 flex justify-between md:justify-start gap-3 z-40 md:flex-col md:w-40">
+        <div className="fixed bottom-28 left-4 right-4 md:left-auto md:right-6 flex justify-between md:justify-start gap-3 z-40 md:flex-col md:w-40">
           {/* Left column on mobile / Top on desktop: Flower toggle + colors */}
           <div className="flex flex-col gap-2 items-center justify-end md:justify-start">
             {/* Flower grid selector */}
@@ -1469,7 +1435,7 @@ function Home() {
 
       {/* Share URL display - only show when creator just saved */}
       {isViewingShared && justCreated && (
-        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-40">
+        <div className="fixed bottom-28 left-1/2 z-40 -translate-x-1/2">
           <div className="bg-white/50 backdrop-blur-xl rounded-xl shadow-xl p-5 flex flex-col gap-3 min-w-[320px]">
                         <div className="flex gap-2">
               <input
@@ -1668,61 +1634,6 @@ function Home() {
         </div>
       )}
 
-      {/* Email Modal */}
-      {showEmailModal && (
-        <div className="fixed inset-0 bg-black/10 backdrop-blur-md flex items-center justify-center z-50 p-4">
-          <div className="bg-white/50 backdrop-blur-xl w-full max-w-sm p-8 relative rounded-2xl shadow-xl">
-            <button
-              type="button"
-              onClick={handleSkipEmail}
-              className="absolute top-4 right-4 text-black/40 hover:text-black text-2xl leading-none"
-              aria-label="Close"
-            >
-              ×
-            </button>
-
-            <div className="text-center">
-              <img
-                src="/us.png"
-                alt="Danger Testing"
-                className="h-24 mx-auto mb-4"
-              />
-
-              <h2 className="text-lg tracking-wide lowercase mb-2 font-bold">we&apos;re marc and los.</h2>
-              <p className="text-sm text-black mb-6 leading-relaxed">
-                we&apos;re trying to make the internet fun again. we drop apps like this every week. would mean a lot if you entered your email.
-              </p>
-
-              <div className="space-y-3">
-                <input
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="Enter your email"
-                  className="w-full px-4 py-3 bg-black/10 rounded-lg text-black text-sm border-none focus:outline-none"
-                />
-
-                <button
-                  type="button"
-                  onClick={handleEmailSubmit}
-                  disabled={emailSubmitting || !email.trim()}
-                  className="w-full bg-[#DB234F] text-white px-4 py-3 text-sm tracking-wide disabled:opacity-30 disabled:pointer-events-none hover:bg-[#B81D42] transition-colors rounded-lg font-medium"
-                >
-                  {emailSubmitting ? "..." : "Subscribe"}
-                </button>
-
-                <button
-                  type="button"
-                  onClick={handleSkipEmail}
-                  className="text-sm underline text-black/50 hover:text-black transition-colors"
-                >
-                  Skip
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }
