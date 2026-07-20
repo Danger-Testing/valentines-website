@@ -1151,24 +1151,27 @@ function Home() {
         />
       </a>
 
-      {/* Follow button */}
-      <a
-        href="https://x.com/immike_wing"
-        target="_blank"
-        rel="noopener noreferrer"
-        className="fixed bottom-1 left-1/2 z-[45] block w-[min(56vw,16rem)] -translate-x-1/2 cursor-pointer transition-transform duration-200 hover:-translate-y-1 focus:outline-none md:bottom-2"
-        aria-label="Follow Mike Wing for apps"
-      >
+      {/* Decorative link image */}
+      <div className="fixed bottom-0 left-0 z-40 hidden md:block">
         <Image
-          src="/follow-mike-button.png"
-          alt="Follow Mike Wing for apps"
-          width={426}
-          height={163}
-          sizes="(max-width: 640px) 56vw, 256px"
-          className="block h-auto w-full select-none"
-          draggable={false}
+          src="/link.png"
+          alt=""
+          width={400}
+          height={400}
+          className="w-36 h-36 object-contain"
         />
-      </a>
+      </div>
+
+      {/* Decorative turtle */}
+      <div className="fixed top-4 right-4 md:top-6 md:right-6 z-40">
+        <Image
+          src="/turtle.png"
+          alt="Turtle"
+          width={150}
+          height={150}
+          className="w-12 h-12 md:w-20 md:h-20"
+        />
+      </div>
 
       {/* Note display bottom right - only on sharing page */}
       {isViewingShared && (savedNote || savedFromName || savedToName) && (
@@ -1348,7 +1351,7 @@ function Home() {
 
       {/* Bottom toolbar - only show when editing */}
       {!isViewingShared && !shareUrl && (
-        <div className="fixed bottom-28 left-4 right-4 md:left-auto md:right-6 flex justify-between md:justify-start gap-3 z-40 md:flex-col md:w-40">
+        <div className="fixed bottom-6 left-4 right-4 md:left-auto md:right-6 flex justify-between md:justify-start gap-3 z-40 md:flex-col md:w-40">
           {/* Left column on mobile / Top on desktop: Flower toggle + colors */}
           <div className="flex flex-col gap-2 items-center justify-end md:justify-start">
             {/* Flower grid selector */}
