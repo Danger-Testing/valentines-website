@@ -347,7 +347,6 @@ function Home() {
   const [isSaving, setIsSaving] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [isViewingShared, setIsViewingShared] = useState(false);
-  const [copied, setCopied] = useState(false);
   const FLOWER_OPTIONS = ["flowers", "flowers2", "5", "1", "2", "3", "4", "6", "7"] as const;
   type FlowerOption = typeof FLOWER_OPTIONS[number];
   const [flowerImage, setFlowerImage] = useState<FlowerOption>(
@@ -369,7 +368,6 @@ function Home() {
     message: string;
     type: "error" | "success";
   } | null>(null);
-  const [justCreated, setJustCreated] = useState(false);
 
   const canvasRef = useRef<HTMLDivElement>(null);
   const modalRef = useRef<HTMLDivElement>(null);
@@ -386,12 +384,6 @@ function Home() {
     const isEditMode = searchParams.get("edit") === "1";
     if (slug) {
       setIsLoading(true);
-      // Check if we just created this bouquet
-      const createdSlug = sessionStorage.getItem("justCreated");
-      if (createdSlug === slug) {
-        setJustCreated(true);
-        sessionStorage.removeItem("justCreated");
-      }
       loadBouquet(slug).then((result) => {
         if ("error" in result) {
           showToast("Could not load bouquet: " + result.error, "error");
@@ -452,60 +444,7 @@ function Home() {
     setShowNoteModal(false);
     setIsSaving(false);
 
-    // Mark as just created and navigate to the shared page
-    sessionStorage.setItem("justCreated", result.slug);
     window.location.href = `?b=${result.slug}`;
-  };
-
-  // Copy share URL to clipboard, including browsers that block navigator.clipboard.
-  const copyText = async (text: string) => {
-    try {
-      if (navigator.clipboard?.writeText) {
-        await navigator.clipboard.writeText(text);
-        return true;
-      }
-    } catch {
-      // Fall back to the older copy path below.
-    }
-
-    try {
-      const textarea = document.createElement("textarea");
-      textarea.value = text;
-      textarea.setAttribute("readonly", "");
-      textarea.style.position = "fixed";
-      textarea.style.opacity = "0";
-      document.body.appendChild(textarea);
-      textarea.select();
-      const copied = document.execCommand("copy");
-      document.body.removeChild(textarea);
-      return copied;
-    } catch {
-      return false;
-    }
-  };
-
-  const shareBouquet = async (url: string) => {
-    if (
-      navigator.share &&
-      /iPhone|iPad|iPod|Android/i.test(navigator.userAgent)
-    ) {
-      try {
-        await navigator.share({ url });
-        return;
-      } catch (error) {
-        if (error instanceof DOMException && error.name === "AbortError") {
-          return;
-        }
-      }
-    }
-
-    const copiedSuccessfully = await copyText(url);
-    if (copiedSuccessfully) {
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    } else {
-      showToast("Could not copy the share link. Please copy it manually.", "error");
-    }
   };
 
   // URL parsing
@@ -1432,40 +1371,6 @@ function Home() {
                 Save & Share ⚘
               </span>
             </button>
-          </div>
-        </div>
-      )}
-
-      {/* Share URL display - only show when creator just saved */}
-      {isViewingShared && justCreated && (
-        <div className="fixed bottom-28 left-1/2 z-40 -translate-x-1/2">
-          <div className="bg-white/50 backdrop-blur-xl rounded-xl shadow-xl p-5 flex flex-col gap-3 min-w-[320px]">
-                        <div className="flex gap-2">
-              <input
-                type="text"
-                value={typeof window !== "undefined" ? `${window.location.origin}?b=${searchParams.get("b")}` : ""}
-                readOnly
-                className="flex-1 px-4 py-2 bg-black/10 rounded-lg text-black text-sm border-none"
-              />
-              <button
-                onClick={() =>
-                  shareBouquet(`${window.location.origin}?b=${searchParams.get("b")}`)
-                }
-                className={`px-4 py-2 rounded-lg transition-colors font-medium cursor-pointer ${
-                  copied
-                    ? "bg-[#DB234F] text-white"
-                    : "bg-[#DB234F] text-white"
-                }`}
-              >
-                {copied ? "Copied!" : "Share"}
-              </button>
-            </div>
-            <a
-              href="/"
-              className="text-sm text-black hover:text-black/70 transition-colors text-center"
-            >
-              Create another one
-            </a>
           </div>
         </div>
       )}
