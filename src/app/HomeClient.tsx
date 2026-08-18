@@ -27,6 +27,7 @@ import {
 } from "@/components/embeds";
 
 type AppdropOutputVisibility = "private" | "unlisted" | "public";
+const APPDROP_ORIGIN = "https://www.appdrop.com";
 
 type AppdropSaveOutput = {
   output_type: string;
@@ -37,11 +38,17 @@ type AppdropSaveOutput = {
   data: Record<string, unknown>;
 };
 
+type AppdropSaveResponse = {
+  output?: {
+    id?: string;
+  };
+};
+
 declare global {
   interface Window {
     appdrop?: {
       isEmbedded?: () => boolean;
-      saveOutput?: (output: AppdropSaveOutput) => Promise<unknown>;
+      saveOutput?: (output: AppdropSaveOutput) => Promise<AppdropSaveResponse>;
     };
   }
 }
@@ -361,6 +368,30 @@ function getBouquetSummary(note: string, itemCount: number) {
   return trimmedNote || `A bouquet with ${itemCount} ${itemCount === 1 ? "link" : "links"}.`;
 }
 
+function getAppdropViewerUrl(outputId: string, sourceUrl: string) {
+  const appId = new URLSearchParams(window.location.search).get("appdrop_app_id");
+  if (!appId) return null;
+
+  const viewerUrl = new URL(`/app/${encodeURIComponent(appId)}`, APPDROP_ORIGIN);
+  viewerUrl.searchParams.set("url", sourceUrl);
+  viewerUrl.searchParams.set("appdrop_output_id", outputId);
+  return viewerUrl.toString();
+}
+
+function openSavingWindow() {
+  if (!window.appdrop?.isEmbedded?.()) return null;
+  const viewerWindow = window.open("", "_blank");
+  if (!viewerWindow) return null;
+
+  try {
+    viewerWindow.document.title = "Saving Link Bouquet…";
+    viewerWindow.document.body.textContent = "Saving your Link Bouquet…";
+  } catch {
+    // The popup can still be navigated if the browser isolates its blank document.
+  }
+  return viewerWindow;
+}
+
 async function saveBouquetToAppdrop({
   bgColor,
   flowerImage,
@@ -384,7 +415,7 @@ async function saveBouquetToAppdrop({
 }) {
   if (!window.appdrop?.isEmbedded?.() || !window.appdrop.saveOutput) return;
 
-  await window.appdrop.saveOutput({
+  return window.appdrop.saveOutput({
     output_type: "link_bouquet",
     title: getBouquetTitle(fromName, toName),
     summary: getBouquetSummary(note, items.length),
@@ -503,6 +534,7 @@ function Home() {
   // Handle saving bouquet to Supabase
   const handleSave = async () => {
     if (isSaving || items.length === 0) return;
+    const viewerWindow = openSavingWindow();
     setIsSaving(true);
 
     const bouquetData = {
@@ -519,13 +551,14 @@ function Home() {
     const result = await saveBouquet(bouquetData);
 
     if ("error" in result) {
+      viewerWindow?.close();
       showToast("Could not save bouquet: " + result.error, "error");
       setIsSaving(false);
       return;
     }
 
     const url = `${window.location.origin}?b=${result.slug}`;
-    await saveBouquetToAppdrop({
+    const appdropResult = await saveBouquetToAppdrop({
       bgColor,
       flowerImage,
       fromName,
@@ -537,7 +570,18 @@ function Home() {
       url,
     }).catch((error) => {
       console.info("appdrop: bouquet output save skipped", error);
+      return undefined;
     });
+
+    const outputId = appdropResult?.output?.id;
+    const viewerUrl = outputId ? getAppdropViewerUrl(outputId, url) : null;
+    if (viewerWindow && viewerUrl) {
+      viewerWindow.opener = null;
+      viewerWindow.location.replace(viewerUrl);
+      viewerWindow.focus();
+    } else {
+      viewerWindow?.close();
+    }
 
     setShareUrl(url);
     setShowNoteModal(false);
