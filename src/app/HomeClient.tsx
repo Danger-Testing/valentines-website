@@ -43,11 +43,18 @@ type AppdropSaveResponse = {
   };
 };
 
+type AppdropCurrentOutputResponse = {
+  href?: string;
+};
+
 declare global {
   interface Window {
     appdrop?: {
       isEmbedded?: () => boolean;
       saveOutput?: (output: AppdropSaveOutput) => Promise<AppdropSaveResponse>;
+      setCurrentOutput?: (output: {
+        id: string;
+      }) => Promise<AppdropCurrentOutputResponse>;
     };
   }
 }
@@ -390,7 +397,7 @@ async function saveBouquetToAppdrop({
 }) {
   if (!window.appdrop?.isEmbedded?.() || !window.appdrop.saveOutput) return;
 
-  return window.appdrop.saveOutput({
+  const savedOutput = await window.appdrop.saveOutput({
     output_type: "link_bouquet",
     title: getBouquetTitle(fromName, toName),
     summary: getBouquetSummary(note, items.length),
@@ -415,6 +422,19 @@ async function saveBouquetToAppdrop({
       url,
     },
   });
+
+  const outputId = savedOutput.output?.id?.trim();
+  if (outputId && window.appdrop.setCurrentOutput) {
+    try {
+      // Saving must finish first so Appdrop can stage the private chat card
+      // before exposing the same result in the outer address bar.
+      await window.appdrop.setCurrentOutput({ id: outputId });
+    } catch (error) {
+      console.info("appdrop: output URL handoff skipped", error);
+    }
+  }
+
+  return savedOutput;
 }
 
 function Home() {
