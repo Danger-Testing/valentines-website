@@ -112,9 +112,6 @@ export async function loadBouquet(slug: string): Promise<BouquetData | { error: 
 export interface PublicBouquet {
   slug: string
   image_url: string | null
-  bg_color: string | null
-  from_name: string | null
-  to_name: string | null
   items: MediaItem[]
   created_at: string
 }
@@ -127,7 +124,7 @@ export async function loadAllBouquets(): Promise<PublicBouquet[] | { error: stri
 
   const { data, error } = await supabase
     .from('bouquets')
-    .select('slug, image_url, bg_color, from_name, to_name, items, created_at')
+    .select('slug, image_url, items, created_at')
     .eq('is_gallery', true)
     .order('created_at', { ascending: false })
 
@@ -138,10 +135,7 @@ export async function loadAllBouquets(): Promise<PublicBouquet[] | { error: stri
   return data.map(row => ({
     slug: row.slug as string,
     image_url: row.image_url as string | null,
-    bg_color: row.bg_color as string | null,
-    from_name: row.from_name as string | null,
-    to_name: row.to_name as string | null,
-    items: row.items as MediaItem[],
+    items: (row.items || []) as MediaItem[],
     created_at: row.created_at as string,
   }))
 }
