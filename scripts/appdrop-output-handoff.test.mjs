@@ -5,6 +5,7 @@ import path from "node:path";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const source = readFileSync(path.join(root, "src/app/HomeClient.tsx"), "utf8");
+const layout = readFileSync(path.join(root, "src/app/layout.tsx"), "utf8");
 
 describe("Appdrop output handoff", () => {
   test("waits for the private save before exposing its URL", () => {
@@ -30,6 +31,25 @@ describe("Appdrop output handoff", () => {
       "if (outputId && window.appdrop.setCurrentOutput)",
     );
     expect(source).toContain('console.info("appdrop: output URL handoff skipped"');
+    expect(source).toContain(
+      "const isAppdropEmbedded = isRunningInAppdropFrame();",
+    );
+    expect(source).toContain('window.name.startsWith("appdrop-world:")');
+    expect(source).toContain("if (!isAppdropEmbedded)");
     expect(source).toContain("window.location.href = `?b=${result.slug}`;");
+  });
+
+  test("loads the Appdrop bridge before interactive code runs", () => {
+    expect(layout).toContain(
+      'src="https://www.appdrop.com/appdrop-sdk.js"',
+    );
+    expect(layout).toContain('from "next/script"');
+    expect(layout).toContain('strategy="beforeInteractive"');
+  });
+
+  test("offers a clipboard fallback after an embedded save", () => {
+    expect(source).toContain("Saved and ready to share in chat");
+    expect(source).toContain("await navigator.clipboard.writeText(shareUrl);");
+    expect(source).toContain("Bouquet link copied to clipboard");
   });
 });

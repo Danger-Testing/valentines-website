@@ -9,6 +9,7 @@ import {
 } from "react";
 import { useSearchParams } from "next/navigation";
 import Image from "next/image";
+import { Check, Copy, X } from "lucide-react";
 import {
   saveBouquet,
   loadBouquet,
@@ -374,6 +375,14 @@ function getBouquetSummary(note: string, itemCount: number) {
   return trimmedNote || `A bouquet with ${itemCount} ${itemCount === 1 ? "link" : "links"}.`;
 }
 
+function isRunningInAppdropFrame() {
+  return (
+    window.parent !== window &&
+    typeof window.name === "string" &&
+    window.name.startsWith("appdrop-world:")
+  );
+}
+
 async function saveBouquetToAppdrop({
   bgColor,
   flowerImage,
@@ -455,6 +464,7 @@ function Home() {
 
   // Supabase sharing state
   const [shareUrl, setShareUrl] = useState<string | null>(null);
+  const [isShareUrlCopied, setIsShareUrlCopied] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [isViewingShared, setIsViewingShared] = useState(false);
@@ -482,12 +492,42 @@ function Home() {
 
   const canvasRef = useRef<HTMLDivElement>(null);
   const modalRef = useRef<HTMLDivElement>(null);
+  const copyResetTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(
+    null,
+  );
 
   // Show toast notification
   const showToast = (message: string, type: "error" | "success" = "error") => {
     setToast({ message, type });
     setTimeout(() => setToast(null), 3000);
   };
+
+  const copyShareUrl = async () => {
+    if (!shareUrl) return;
+
+    try {
+      await navigator.clipboard.writeText(shareUrl);
+      setIsShareUrlCopied(true);
+
+      if (copyResetTimeoutRef.current) {
+        clearTimeout(copyResetTimeoutRef.current);
+      }
+
+      copyResetTimeoutRef.current = setTimeout(() => {
+        setIsShareUrlCopied(false);
+      }, 2000);
+    } catch {
+      showToast("Could not copy the link. Please copy it manually.", "error");
+    }
+  };
+
+  useEffect(() => {
+    return () => {
+      if (copyResetTimeoutRef.current) {
+        clearTimeout(copyResetTimeoutRef.current);
+      }
+    };
+  }, []);
 
   // Load bouquet from URL if slug parameter exists
   useEffect(() => {
@@ -551,6 +591,9 @@ function Home() {
     }
 
     const url = `${window.location.origin}?b=${result.slug}`;
+    // The frame marker is owned by Appdrop and is available independently of
+    // SDK timing. Never replace the iframe while its host is preparing chat.
+    const isAppdropEmbedded = isRunningInAppdropFrame();
     await saveBouquetToAppdrop({
       bgColor,
       flowerImage,
@@ -566,10 +609,13 @@ function Home() {
     });
 
     setShareUrl(url);
+    setIsShareUrlCopied(false);
     setShowNoteModal(false);
     setIsSaving(false);
 
-    window.location.href = `?b=${result.slug}`;
+    if (!isAppdropEmbedded) {
+      window.location.href = `?b=${result.slug}`;
+    }
   };
 
   // URL parsing
@@ -1572,6 +1618,82 @@ function Home() {
                 {isSaving ? "Saving..." : "Save & Share ⚘"}
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Saved/share dialog for the embedded AppDrop experience */}
+      {shareUrl && !isViewingShared && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="share-modal-title"
+          className="fixed inset-0 z-[60] flex items-center justify-center bg-black/10 p-4 backdrop-blur-md"
+          onClick={() => setShareUrl(null)}
+        >
+          <div
+            className="w-full max-w-md rounded-2xl bg-white/90 p-6 shadow-xl backdrop-blur-xl"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <div className="mb-4 flex items-start justify-between gap-4">
+              <div>
+                <div className="mb-2 flex h-9 w-9 items-center justify-center rounded-full bg-[#DB234F] text-white">
+                  <Check aria-hidden="true" className="h-5 w-5" />
+                </div>
+                <h2
+                  id="share-modal-title"
+                  className="text-xl font-medium text-black"
+                >
+                  Saved and ready to share in chat
+                </h2>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShareUrl(null)}
+                aria-label="Close share dialog"
+                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-black/5 text-xl text-black/60 transition-colors hover:bg-black/10 hover:text-black focus:outline-none focus:ring-2 focus:ring-black/20"
+              >
+                <X aria-hidden="true" className="h-5 w-5" />
+              </button>
+            </div>
+
+            <p className="mb-3 text-sm text-black/60">
+              Copy your bouquet link to share it anywhere.
+            </p>
+            <div className="flex gap-2">
+              <input
+                type="text"
+                value={shareUrl}
+                readOnly
+                aria-label="Bouquet share link"
+                onFocus={(event) => event.currentTarget.select()}
+                className="min-w-0 flex-1 rounded-lg bg-black/5 px-3 py-3 text-sm text-black/70 focus:outline-none focus:ring-2 focus:ring-black/10"
+              />
+              <button
+                type="button"
+                onClick={copyShareUrl}
+                className={`flex min-w-24 items-center justify-center gap-2 rounded-lg px-4 py-3 font-medium text-white transition-colors focus:outline-none focus:ring-2 focus:ring-[#DB234F]/40 ${
+                  isShareUrlCopied
+                    ? "bg-emerald-600"
+                    : "bg-[#DB234F] hover:bg-[#B81D42]"
+                }`}
+              >
+                {isShareUrlCopied ? (
+                  <>
+                    <Check aria-hidden="true" className="h-4 w-4" />
+                    Copied
+                  </>
+                ) : (
+                  <>
+                    <Copy aria-hidden="true" className="h-4 w-4" />
+                    Copy
+                  </>
+                )}
+              </button>
+            </div>
+            <span className="sr-only" aria-live="polite">
+              {isShareUrlCopied ? "Bouquet link copied to clipboard" : ""}
+            </span>
           </div>
         </div>
       )}
