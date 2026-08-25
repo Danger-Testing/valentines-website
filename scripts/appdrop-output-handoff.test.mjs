@@ -17,13 +17,12 @@ describe("Appdrop output handoff", () => {
     expect(handoff).toContain(
       "const savedOutput = await window.appdrop.saveOutput({",
     );
-    expect(handoff).toContain(
-      "const currentOutput = await window.appdrop.setCurrentOutput({",
-    );
+    expect(handoff).toContain("await window.appdrop.setCurrentOutput({");
     expect(handoff.indexOf("await window.appdrop.saveOutput(")).toBeLessThan(
       handoff.indexOf("await window.appdrop.setCurrentOutput("),
     );
-    expect(handoff).toContain("return { savedOutput, shareUrl };");
+    expect(handoff).toContain("await waitForNextPaint();");
+    expect(handoff).toContain("return savedOutput;");
   });
 
   test("keeps URL exposure optional so the saved chat card still wins", () => {
@@ -47,16 +46,12 @@ describe("Appdrop output handoff", () => {
     expect(layout).toContain('strategy="beforeInteractive"');
   });
 
-  test("offers a clipboard fallback after an embedded save", () => {
+  test("leaves embedded sharing to Appdrop and keeps standalone copying", () => {
     expect(source).toContain("Saved and ready to share in chat");
     expect(source).toContain("await navigator.clipboard.writeText(shareUrl);");
     expect(source).toContain("Bouquet link copied to clipboard");
-    expect(source).toContain('const APPDROP_ORIGIN = "https://www.appdrop.com";');
     expect(source).toContain(
-      "shareUrl = new URL(currentOutput.href, APPDROP_ORIGIN).toString();",
-    );
-    expect(source).toContain(
-      "appdropResult?.shareUrl ?? getAppdropBouquetUrl(result.slug)",
+      "setShareUrl(isAppdropEmbedded ? null : url);",
     );
   });
 });
