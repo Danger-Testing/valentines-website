@@ -18,12 +18,12 @@ describe("Appdrop output handoff", () => {
       "const savedOutput = await window.appdrop.saveOutput({",
     );
     expect(handoff).toContain(
-      "await window.appdrop.setCurrentOutput({ id: outputId });",
+      "const currentOutput = await window.appdrop.setCurrentOutput({",
     );
     expect(handoff.indexOf("await window.appdrop.saveOutput(")).toBeLessThan(
       handoff.indexOf("await window.appdrop.setCurrentOutput("),
     );
-    expect(handoff).toContain("return savedOutput;");
+    expect(handoff).toContain("return { savedOutput, shareUrl };");
   });
 
   test("keeps URL exposure optional so the saved chat card still wins", () => {
@@ -51,5 +51,12 @@ describe("Appdrop output handoff", () => {
     expect(source).toContain("Saved and ready to share in chat");
     expect(source).toContain("await navigator.clipboard.writeText(shareUrl);");
     expect(source).toContain("Bouquet link copied to clipboard");
+    expect(source).toContain('const APPDROP_ORIGIN = "https://www.appdrop.com";');
+    expect(source).toContain(
+      "shareUrl = new URL(currentOutput.href, APPDROP_ORIGIN).toString();",
+    );
+    expect(source).toContain(
+      "appdropResult?.shareUrl ?? getAppdropBouquetUrl(result.slug)",
+    );
   });
 });
