@@ -17,12 +17,14 @@ describe("Appdrop output handoff", () => {
     expect(handoff).toContain(
       "const savedOutput = await window.appdrop.saveOutput({",
     );
-    expect(handoff).toContain("await window.appdrop.setCurrentOutput({");
+    expect(handoff).toContain(
+      "const currentOutput = await window.appdrop.setCurrentOutput({",
+    );
     expect(handoff.indexOf("await window.appdrop.saveOutput(")).toBeLessThan(
       handoff.indexOf("await window.appdrop.setCurrentOutput("),
     );
     expect(handoff).toContain("await waitForNextPaint();");
-    expect(handoff).toContain("return savedOutput;");
+    expect(handoff).toContain("return { savedOutput, shareUrl };");
   });
 
   test("keeps URL exposure optional so the saved chat card still wins", () => {
@@ -46,12 +48,12 @@ describe("Appdrop output handoff", () => {
     expect(layout).toContain('strategy="beforeInteractive"');
   });
 
-  test("leaves embedded sharing to Appdrop and keeps standalone copying", () => {
+  test("keeps the copy sheet alongside Appdrop's chat handoff", () => {
     expect(source).toContain("Saved and ready to share in chat");
     expect(source).toContain("await navigator.clipboard.writeText(shareUrl);");
     expect(source).toContain("Bouquet link copied to clipboard");
     expect(source).toContain(
-      "setShareUrl(isAppdropEmbedded ? null : url);",
+      "appdropResult?.shareUrl ?? getAppdropBouquetUrl(result.slug)",
     );
   });
 });

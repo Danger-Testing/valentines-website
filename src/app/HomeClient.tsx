@@ -48,6 +48,8 @@ type AppdropCurrentOutputResponse = {
   href?: string;
 };
 
+const APPDROP_ORIGIN = "https://www.appdrop.com";
+
 declare global {
   interface Window {
     appdrop?: {
@@ -383,6 +385,10 @@ function isRunningInAppdropFrame() {
   );
 }
 
+function getAppdropBouquetUrl(slug: string) {
+  return `${APPDROP_ORIGIN}/b/${encodeURIComponent(slug)}`;
+}
+
 function waitForNextPaint() {
   return new Promise<void>((resolve) => {
     window.requestAnimationFrame(() => resolve());
@@ -438,6 +444,7 @@ async function saveBouquetToAppdrop({
     },
   });
 
+  let shareUrl: string | undefined;
   const outputId = savedOutput.output?.id?.trim();
   if (outputId && window.appdrop.setCurrentOutput) {
     try {
@@ -445,15 +452,18 @@ async function saveBouquetToAppdrop({
       // before exposing the same result in the outer address bar. Give React
       // one paint to show that host card before the history handoff.
       await waitForNextPaint();
-      await window.appdrop.setCurrentOutput({
+      const currentOutput = await window.appdrop.setCurrentOutput({
         id: outputId,
       });
+      if (currentOutput.href) {
+        shareUrl = new URL(currentOutput.href, APPDROP_ORIGIN).toString();
+      }
     } catch (error) {
       console.info("appdrop: output URL handoff skipped", error);
     }
   }
 
-  return savedOutput;
+  return { savedOutput, shareUrl };
 }
 
 function Home() {
@@ -604,7 +614,7 @@ function Home() {
     // The frame marker is owned by Appdrop and is available independently of
     // SDK timing. Never replace the iframe while its host is preparing chat.
     const isAppdropEmbedded = isRunningInAppdropFrame();
-    await saveBouquetToAppdrop({
+    const appdropResult = await saveBouquetToAppdrop({
       bgColor,
       flowerImage,
       fromName,
@@ -618,10 +628,11 @@ function Home() {
       console.info("appdrop: bouquet output save skipped", error);
     });
 
-    // Appdrop owns the ready-to-share UI. A second iframe modal can obscure
-    // the chat card, especially on mobile. Standalone Link Bouquet keeps its
-    // regular copy dialog.
-    setShareUrl(isAppdropEmbedded ? null : url);
+    setShareUrl(
+      isAppdropEmbedded
+        ? appdropResult?.shareUrl ?? getAppdropBouquetUrl(result.slug)
+        : url,
+    );
     setIsShareUrlCopied(false);
     setShowNoteModal(false);
     setIsSaving(false);
