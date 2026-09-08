@@ -644,6 +644,25 @@ function Home() {
 
   // URL parsing
   const parseUrl = (url: string): { type: MediaType; id: string } | null => {
+    url = url.trim();
+    if (!url) return null;
+
+    // Accept plain domains and pasted links without requiring a protocol.
+    const hasScheme = /^[a-z][a-z\d+.-]*:/i.test(url) &&
+      !/^[^/?#:]+:\d+(?:[/?#]|$)/.test(url);
+    try {
+      const parsed = new URL(
+        url.startsWith("//") ? `https:${url}` : hasScheme ? url : `https://${url}`,
+      );
+      if (parsed.protocol !== "http:" && parsed.protocol !== "https:") return null;
+      if (!hasScheme && !parsed.hostname.includes(".") && parsed.hostname !== "localhost") {
+        return null;
+      }
+      url = parsed.href;
+    } catch {
+      return null;
+    }
+
     const igMatch = url.match(/instagram\.com\/(?:reel|p)\/([A-Za-z0-9_-]+)/);
     if (igMatch) return { type: "instagram", id: igMatch[1] };
 
@@ -673,17 +692,8 @@ function Home() {
     );
     if (twitterMatch) return { type: "twitter", id: twitterMatch[2] };
 
-    // Fallback: any valid URL becomes a generic link
-    try {
-      const parsed = new URL(url);
-      if (parsed.protocol === "http:" || parsed.protocol === "https:") {
-        return { type: "link", id: url };
-      }
-    } catch {
-      // Invalid URL
-    }
-
-    return null;
+    // Fallback: any valid web address becomes a generic link.
+    return { type: "link", id: url };
   };
 
   const addItem = (type: MediaType, mediaId: string) => {
@@ -723,7 +733,7 @@ function Home() {
       setShowInput(false);
     } else {
       showToast(
-        "Please enter a valid Instagram, YouTube, or Spotify URL",
+        "Please enter a domain or link, like example.com",
         "error",
       );
     }
@@ -1744,13 +1754,18 @@ function Home() {
               Add a link
             </h2>
             <p className="text-black text-sm mb-4">
-              Paste a link here or use ⌘V anywhere on the canvas. Works with
+              Enter a domain or paste a link here, or use ⌘V anywhere on the canvas. Works with
               YouTube, Spotify, TikTok, Substack & more.
             </p>
             <input
               type="text"
               name="url"
-              placeholder="https://..."
+              inputMode="url"
+              autoCapitalize="none"
+              autoCorrect="off"
+              spellCheck={false}
+              aria-label="Domain or link"
+              placeholder="example.com or any link"
               className="w-full px-4 py-3 rounded-xl border-none bg-black/10 focus:outline-none mb-4"
               autoFocus
             />
