@@ -8,7 +8,7 @@ import {
   type PublicBouquet,
 } from "@/lib/supabase";
 
-type Camera = { x: number; y: number; zoom: number };
+import { PanZoomGesture, type Camera } from "@/lib/pointer-gestures";
 type Point = { x: number; y: number; rotation: number };
 
 const PETAL_ARMS = 8;
@@ -138,12 +138,8 @@ export default function GalleryClient() {
   const [camera, setCamera] = useState<Camera>({ x: 0, y: 0, zoom: 0.32 });
   const [viewport, setViewport] = useState({ width: 0, height: 0 });
   const canvasRef = useRef<HTMLDivElement>(null);
-  const dragRef = useRef<{
-    pointerId: number;
-    x: number;
-    y: number;
-    camera: Camera;
-  } | null>(null);
+  const gestureRef = useRef(new PanZoomGesture());
+  const suppressClickRef = useRef(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -210,30 +206,34 @@ export default function GalleryClient() {
   const handlePointerDown = (event: React.PointerEvent<HTMLDivElement>) => {
     if (
       event.button !== 0 ||
-      (event.target instanceof Element && event.target.closest("a, button"))
+      (event.target instanceof Element && event.target.closest("button"))
     )
       return;
-    event.currentTarget.setPointerCapture(event.pointerId);
-    dragRef.current = {
-      pointerId: event.pointerId,
-      x: event.clientX,
-      y: event.clientY,
-      camera,
-    };
-  };
-
-  const handlePointerMove = (event: React.PointerEvent<HTMLDivElement>) => {
-    const drag = dragRef.current;
-    if (!drag || drag.pointerId !== event.pointerId) return;
-    setCamera({
-      ...drag.camera,
-      x: drag.camera.x + (event.clientX - drag.x) / drag.camera.zoom,
-      y: drag.camera.y + (event.clientY - drag.y) / drag.camera.zoom,
+    if (!gestureRef.current.active) suppressClickRef.current = false;
+    const rect = event.currentTarget.getBoundingClientRect();
+    gestureRef.current.begin(event, camera, {
+      x: rect.left + rect.width / 2,
+      y: rect.top + rect.height / 2,
     });
   };
 
-  const stopDragging = () => {
-    dragRef.current = null;
+  const handlePointerMove = (event: React.PointerEvent<HTMLDivElement>) => {
+    const next = gestureRef.current.move(event);
+    if (!next) return;
+    event.currentTarget.setPointerCapture(event.pointerId);
+    suppressClickRef.current = true;
+    setCamera(next);
+  };
+
+  const stopDragging = (event: React.PointerEvent<HTMLDivElement>) => {
+    if (gestureRef.current.end(event.pointerId))
+      suppressClickRef.current = true;
+    if (event.type === "pointercancel") {
+      gestureRef.current.cancel();
+      suppressClickRef.current = true;
+    }
+    if (event.currentTarget.hasPointerCapture(event.pointerId))
+      event.currentTarget.releasePointerCapture(event.pointerId);
   };
 
   useEffect(() => {
@@ -286,6 +286,13 @@ export default function GalleryClient() {
         onPointerUp={stopDragging}
         onPointerCancel={stopDragging}
         onLostPointerCapture={stopDragging}
+        onClickCapture={(event) => {
+          if (suppressClickRef.current && event.detail !== 0) {
+            event.preventDefault();
+            event.stopPropagation();
+          }
+        }}
+        onDragStart={(event) => event.preventDefault()}
       >
         <div
           className="absolute inset-0 origin-center"

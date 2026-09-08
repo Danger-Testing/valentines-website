@@ -13,6 +13,7 @@ import {
 } from "@/lib/supabase";
 import { readDraft, writeDraft, type BouquetDraft } from "@/lib/drafts";
 import { useDialogViewport } from "@/lib/use-dialog-viewport";
+import { PointerDrag } from "@/lib/pointer-gestures";
 import {
   InstagramEmbed,
   YouTubeEmbed,
@@ -573,11 +574,7 @@ function Home() {
   const [selectedBucket, setSelectedBucket] = useState(3);
   const [showModal, setShowModal] = useState<MediaItem | null>(null);
   const [dragging, setDragging] = useState<string | null>(null);
-  const [hasDragged, setHasDragged] = useState(false);
-  const [rotating, setRotating] = useState<string | null>(null);
   const [scaling, setScaling] = useState<string | null>(null);
-  const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
-  const [rotateStart] = useState({ angle: 0, itemRotation: 0 });
   const [scaleStart, setScaleStart] = useState({ distance: 0, itemScale: 1 });
 
   // Supabase sharing state
@@ -871,68 +868,77 @@ function Home() {
     }
   };
 
-  const handleMouseDown = useCallback(
-    (e: React.MouseEvent, itemId: string) => {
-      if (canvasRef.current) {
-        const item = items.find((i) => i.id === itemId);
-        if (item) {
-          setUndoStack((previous) => [...previous.slice(-29), items]);
-          const rect = canvasRef.current.getBoundingClientRect();
-          const itemX = (item.x / 100) * rect.width;
-          const itemY = (item.y / 100) * rect.height;
-          setDragOffset({
-            x: e.clientX - rect.left - itemX,
-            y: e.clientY - rect.top - itemY,
-          });
-          setDragging(itemId);
-          setHasDragged(false);
-        }
-      }
-    },
-    [items],
-  );
+  const itemDragRef = useRef<{
+    gesture: PointerDrag;
+    item: MediaItem;
+    width: number;
+    height: number;
+    snapshot: MediaItem[];
+  } | null>(null);
+  const suppressItemClick = useRef(false);
+  const startItemDrag = (
+    event: React.PointerEvent<HTMLDivElement>,
+    item: MediaItem,
+  ) => {
+    suppressItemClick.current = false;
+    if (
+      isViewingShared ||
+      event.button !== 0 ||
+      !event.isPrimary ||
+      (event.target instanceof Element &&
+        event.target.closest("button, [data-scale-handle]"))
+    )
+      return;
+    const rect = canvasRef.current?.getBoundingClientRect();
+    if (!rect?.width || !rect.height) return;
+    itemDragRef.current = {
+      gesture: new PointerDrag(event),
+      item,
+      width: rect.width,
+      height: rect.height,
+      snapshot: items,
+    };
+  };
+  const moveItemDrag = (event: React.PointerEvent<HTMLDivElement>) => {
+    const drag = itemDragRef.current;
+    const delta = drag?.gesture.move(event);
+    if (!drag || !delta) return;
+    if (delta.started) {
+      setUndoStack((previous) => [...previous.slice(-29), drag.snapshot]);
+      setDragging(drag.item.id);
+      event.currentTarget.setPointerCapture(event.pointerId);
+    }
+    suppressItemClick.current = true;
+    setItems((previous) =>
+      previous.map((item) =>
+        item.id === drag.item.id
+          ? {
+              ...item,
+              x: Math.max(
+                5,
+                Math.min(95, drag.item.x + (delta.x / drag.width) * 100),
+              ),
+              y: Math.max(
+                5,
+                Math.min(95, drag.item.y + (delta.y / drag.height) * 100),
+              ),
+            }
+          : item,
+      ),
+    );
+  };
+  const finishItemDrag = (event: React.PointerEvent<HTMLDivElement>) => {
+    const result = itemDragRef.current?.gesture.end(event.pointerId);
+    if (!result) return;
+    suppressItemClick.current = result.moved || event.type === "pointercancel";
+    itemDragRef.current = null;
+    setDragging(null);
+    if (event.currentTarget.hasPointerCapture(event.pointerId))
+      event.currentTarget.releasePointerCapture(event.pointerId);
+  };
 
   const handleMouseMove = useCallback(
     (e: React.MouseEvent) => {
-      if (dragging && canvasRef.current) {
-        setHasDragged(true);
-        const rect = canvasRef.current.getBoundingClientRect();
-        const x = ((e.clientX - rect.left - dragOffset.x) / rect.width) * 100;
-        const y = ((e.clientY - rect.top - dragOffset.y) / rect.height) * 100;
-
-        setItems(
-          items.map((item) =>
-            item.id === dragging
-              ? {
-                  ...item,
-                  x: Math.max(5, Math.min(95, x)),
-                  y: Math.max(5, Math.min(95, y)),
-                }
-              : item,
-          ),
-        );
-      }
-
-      if (rotating && canvasRef.current) {
-        const item = items.find((i) => i.id === rotating);
-        if (item) {
-          const rect = canvasRef.current.getBoundingClientRect();
-          const centerX = rect.left + (item.x / 100) * rect.width;
-          const centerY = rect.top + (item.y / 100) * rect.height;
-          const currentAngle =
-            Math.atan2(e.clientX - centerX, centerY - e.clientY) *
-            (180 / Math.PI);
-          const angleDelta = currentAngle - rotateStart.angle;
-          const newRotation = rotateStart.itemRotation + angleDelta;
-
-          setItems(
-            items.map((i) =>
-              i.id === rotating ? { ...i, rotation: newRotation } : i,
-            ),
-          );
-        }
-      }
-
       if (scaling && canvasRef.current) {
         const item = items.find((i) => i.id === scaling);
         if (item) {
@@ -956,12 +962,10 @@ function Home() {
         }
       }
     },
-    [dragging, rotating, scaling, dragOffset, rotateStart, scaleStart, items],
+    [scaling, scaleStart, items],
   );
 
   const handleMouseUp = useCallback(() => {
-    setDragging(null);
-    setRotating(null);
     setScaling(null);
   }, []);
 
@@ -976,62 +980,6 @@ function Home() {
       observer.disconnect();
       canvasRef.current = null;
     };
-  }, []);
-
-  // Touch event handlers for mobile
-  const handleTouchStart = useCallback(
-    (e: React.TouchEvent, itemId: string) => {
-      if (canvasRef.current && e.touches.length === 1) {
-        const touch = e.touches[0];
-        const item = items.find((i) => i.id === itemId);
-        if (item) {
-          setUndoStack((previous) => [...previous.slice(-29), items]);
-          const rect = canvasRef.current.getBoundingClientRect();
-          const itemX = (item.x / 100) * rect.width;
-          const itemY = (item.y / 100) * rect.height;
-          setDragOffset({
-            x: touch.clientX - rect.left - itemX,
-            y: touch.clientY - rect.top - itemY,
-          });
-          setDragging(itemId);
-          setHasDragged(false);
-        }
-      }
-    },
-    [items],
-  );
-
-  const handleTouchMove = useCallback(
-    (e: React.TouchEvent) => {
-      if (dragging && canvasRef.current && e.touches.length === 1) {
-        const touch = e.touches[0];
-        setHasDragged(true);
-        const rect = canvasRef.current.getBoundingClientRect();
-        const x =
-          ((touch.clientX - rect.left - dragOffset.x) / rect.width) * 100;
-        const y =
-          ((touch.clientY - rect.top - dragOffset.y) / rect.height) * 100;
-
-        setItems(
-          items.map((item) =>
-            item.id === dragging
-              ? {
-                  ...item,
-                  x: Math.max(5, Math.min(95, x)),
-                  y: Math.max(5, Math.min(95, y)),
-                }
-              : item,
-          ),
-        );
-      }
-    },
-    [dragging, dragOffset, items],
-  );
-
-  const handleTouchEnd = useCallback(() => {
-    setDragging(null);
-    setRotating(null);
-    setScaling(null);
   }, []);
 
   useEffect(() => {
@@ -1191,7 +1139,7 @@ function Home() {
 
   const createLinkClickHandler = (url: string) => (e: React.MouseEvent) => {
     e.stopPropagation();
-    if (!hasDragged) {
+    {
       try {
         const target = new URL(url);
         if (target.protocol === "https:" || target.protocol === "http:")
@@ -1284,8 +1232,6 @@ function Home() {
       onMouseMove={handleMouseMove}
       onMouseUp={handleMouseUp}
       onMouseLeave={handleMouseUp}
-      onTouchMove={handleTouchMove}
-      onTouchEnd={handleTouchEnd}
     >
       {/* Full page background for 5.png */}
       {flowerImage === "5" && (
@@ -1416,20 +1362,21 @@ function Home() {
                 left: `${item.x}%`,
                 top: `${item.y}%`,
                 transform: `translate(-50%, -50%) rotate(${item.rotation}deg) scale(${item.scale * canvasScale})`,
+                touchAction: isViewingShared ? "manipulation" : "pinch-zoom",
+                userSelect: "none",
               }}
-              onMouseDown={(e) => {
-                if (
-                  isViewingShared ||
-                  (e.target instanceof Element && e.target.closest("button"))
-                )
-                  return;
-                e.preventDefault();
-                handleMouseDown(e, item.id);
+              onPointerDown={(event) => startItemDrag(event, item)}
+              onPointerMove={moveItemDrag}
+              onPointerUp={finishItemDrag}
+              onPointerCancel={finishItemDrag}
+              onLostPointerCapture={finishItemDrag}
+              onClickCapture={(event) => {
+                if (suppressItemClick.current && event.detail !== 0) {
+                  event.preventDefault();
+                  event.stopPropagation();
+                }
               }}
-              onTouchStart={(e) => {
-                if (isViewingShared) return;
-                handleTouchStart(e, item.id);
-              }}
+              onDragStart={(event) => event.preventDefault()}
             >
               <div className="relative group">
                 <div
@@ -1489,7 +1436,7 @@ function Home() {
                       );
                     }
                   }}
-                  onClick={() => !hasDragged && setShowModal(item)}
+                  onClick={() => setShowModal(item)}
                   className="cursor-pointer"
                 >
                   {renderEmbed(item)}
@@ -1502,7 +1449,13 @@ function Home() {
                         deleteItem(item.id);
                       }}
                       aria-label="Remove item"
-                      className="absolute -top-2 -right-2 w-8 h-8 rounded-full bg-[#E6E6E6]/50 backdrop-blur-md border-2 border-[#EAEAEA] hover:bg-white/90 text-black flex items-center justify-center shadow-lg md:opacity-0 md:group-hover:opacity-100 focus:opacity-100 transition-opacity focus:outline-none focus:ring-2 focus:ring-black/30"
+                      style={
+                        {
+                          "--inverse-item-scale":
+                            1 / Math.max(0.05, item.scale * canvasScale),
+                        } as React.CSSProperties
+                      }
+                      className="media-remove absolute -top-2 -right-2 w-8 h-8 rounded-full bg-[#E6E6E6]/50 backdrop-blur-md border-2 border-[#EAEAEA] hover:bg-white/90 text-black flex items-center justify-center shadow-lg md:opacity-0 md:group-hover:opacity-100 focus:opacity-100 transition-opacity focus:outline-none focus:ring-2 focus:ring-black/30"
                       title="Remove"
                     >
                       <svg
@@ -1521,6 +1474,7 @@ function Home() {
                     </button>
                     {/* Scale handle - hidden on mobile */}
                     <div
+                      data-scale-handle
                       onMouseDown={(e) => {
                         e.stopPropagation();
                         e.preventDefault();

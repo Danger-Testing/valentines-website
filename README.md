@@ -22,6 +22,8 @@ Verify adding a link, refreshing and resuming, removing and undoing with Cmd/Ctr
 
 For mobile forms, check 390px and 320px widths, then reduce the viewport height to 420px, 300px, and 220px to check the space available above a keyboard. Inputs should remain at least 16px, form content should scroll, and Add/Close and Back/Save should remain visible. Test an invalid link and then correct it; the field and its error should stay visible. Dialogs follow `visualViewport` resize/scroll events, including zoom and horizontal panning. Automated tests simulate keyboard resizing without a layout resize, keyboard dismissal, zoom, rotation, and cleanup. Desktop resizing does not emulate a real iOS keyboard; device checks should cover keyboard opening/closing, rotation, and intentional pinch zoom. Embedded apps also depend on their host sizing the iframe to the visible screen.
 
+For touch gestures, verify tapping with small finger movement, dragging a card then tapping it, removing a scaled card, and dragging from a gallery tile then tapping it. Pointer events use a 6px drag threshold, capture after dragging begins, and cancel cleanly when interrupted. The gallery supports one-finger panning and two-finger zoom around the midpoint. Gesture tests cover tap/drag separation, cancellation, pinch limits, and lifting one finger without a camera jump. Physical multi-touch remains a separate device check.
+
 ## Database privacy rollout
 
 See [supabase/README.md](supabase/README.md) for the required deployment order and migration. Unlisted bouquets are available to anyone holding their full URL. Only opted-in bouquets should be enumerable in the gallery. The migration must be applied after the updated client and any other consumers are ready.

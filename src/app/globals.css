@@ -195,6 +195,16 @@
 }
 
 @media (max-width: 768px), (pointer: coarse) {
+  /* The card scales with the bouquet; its touch control must remain usable. */
+  .media-remove {
+    transform: scale(var(--inverse-item-scale, 1));
+    transform-origin: top right;
+  }
+  .media-remove::before {
+    content: "";
+    position: absolute;
+    inset: -8px;
+  }
   /* Keep text fields readable without triggering focus zoom on iOS. */
   input:not([type="checkbox"]):not([type="color"]),
   textarea,
