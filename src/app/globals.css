@@ -1,14 +1,14 @@
 @import "tailwindcss";
 
 @font-face {
-  font-family: 'Cecilia';
-  src: url('/cecilia-Regular.otf') format('opentype');
+  font-family: "Cecilia";
+  src: url("/cecilia-Regular.otf") format("opentype");
   font-weight: 400;
   font-style: normal;
 }
 
 .font-cecilia {
-  font-family: var(--font-cecilia), 'Cecilia', serif !important;
+  font-family: var(--font-cecilia), "Cecilia", serif !important;
 }
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
@@ -137,16 +137,12 @@
     /* Fluid base font size: 14px at 320px viewport, 16px at 1200px */
     font-size: clamp(0.875rem, 0.8rem + 0.25vw, 1rem);
   }
-  /* Disable scrolling on mobile */
-  @media (max-width: 768px) {
-    html, body {
-      overflow: hidden;
-      position: fixed;
-      width: 100%;
-      height: 100%;
-    }
-  }
-  h1, h2, h3, h4, h5, h6 {
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
     font-family: "neue-haas-grotesk-display", sans-serif !important;
   }
   /* Fluid typography scale */
@@ -164,6 +160,39 @@
   }
   .text-fluid-2xl {
     font-size: clamp(1.5rem, 1.2rem + 1vw, 2rem);
+  }
+}
+
+/* Outside layers so these constraints also override dialog utility classes. */
+.dialog-viewport {
+  top: var(--dialog-top, 0px);
+  bottom: auto;
+  height: var(--dialog-height, 100dvh);
+  overscroll-behavior: contain;
+  padding-top: max(1rem, env(safe-area-inset-top));
+  padding-bottom: max(1rem, env(safe-area-inset-bottom));
+}
+
+.dialog-panel {
+  max-height: 100%;
+  min-height: 0;
+  overscroll-behavior: contain;
+}
+
+.dialog-drawer {
+  padding-bottom: 0;
+}
+
+.dialog-drawer > form {
+  padding-bottom: max(1rem, env(safe-area-inset-bottom));
+}
+
+@media (max-width: 768px), (pointer: coarse) {
+  /* Keep text fields readable without triggering focus zoom on iOS. */
+  input:not([type="checkbox"]):not([type="color"]),
+  textarea,
+  select {
+    font-size: 16px;
   }
 }
 

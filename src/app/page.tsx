@@ -1,5 +1,5 @@
 import { Metadata } from "next";
-import { createClient } from "@supabase/supabase-js";
+import { loadBouquet } from "@/lib/supabase";
 import HomeClient from "./HomeClient";
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || "";
@@ -11,7 +11,7 @@ type Props = {
 
 export async function generateMetadata({ searchParams }: Props): Promise<Metadata> {
   const params = await searchParams;
-  const slug = params.b as string | undefined;
+  const slug = typeof params.b === "string" ? params.b : undefined;
 
   // Default metadata
   const defaultMetadata: Metadata = {
@@ -35,16 +35,8 @@ export async function generateMetadata({ searchParams }: Props): Promise<Metadat
   }
 
   try {
-    const supabase = createClient(supabaseUrl, supabaseAnonKey);
-    const { data, error } = await supabase
-      .from("bouquets")
-      .select("from_name, to_name")
-      .eq("slug", slug)
-      .single();
-
-    if (error || !data) {
-      return defaultMetadata;
-    }
+    const data = await loadBouquet(slug);
+    if ("error" in data) return defaultMetadata;
 
     const fromName = data.from_name || "";
     const toName = data.to_name || "";

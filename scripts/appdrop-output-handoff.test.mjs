@@ -36,8 +36,8 @@ describe("Appdrop output handoff", () => {
       "const isAppdropEmbedded = isRunningInAppdropFrame();",
     );
     expect(source).toContain('window.name.startsWith("appdrop-world:")');
-    expect(source).toContain("if (!isAppdropEmbedded)");
-    expect(source).toContain("window.location.href = `?b=${result.slug}`;");
+    expect(source).not.toContain("window.location.href = `?b=${result.slug}`;");
+    expect(source).toContain("setSavedPreviewUrl(url)");
   });
 
   test("loads the Appdrop bridge before interactive code runs", () => {

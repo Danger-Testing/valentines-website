@@ -18,13 +18,13 @@ const geistMono = Geist_Mono({
 export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
-  maximumScale: 1,
-  userScalable: false,
+  interactiveWidget: "resizes-content",
 };
 
 export const metadata: Metadata = {
   title: "Link Bouquet",
-  description: "Create and share beautiful bouquets of your favorite links - YouTube videos, Spotify tracks, Instagram posts and more.",
+  description:
+    "Create and share beautiful bouquets of your favorite links - YouTube videos, Spotify tracks, Instagram posts and more.",
   metadataBase: new URL("https://linkbouquet.com"),
   icons: {
     icon: "/favicon.ico",

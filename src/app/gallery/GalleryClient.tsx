@@ -2,7 +2,11 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { loadAllBouquets, type MediaItem, type PublicBouquet } from "@/lib/supabase";
+import {
+  loadBouquetPage,
+  type MediaItem,
+  type PublicBouquet,
+} from "@/lib/supabase";
 
 type Camera = { x: number; y: number; zoom: number };
 type Point = { x: number; y: number; rotation: number };
@@ -32,8 +36,10 @@ function flowerPosition(index: number, total: number): Point {
   const petalAngle = (arm / PETAL_ARMS) * Math.PI * 2;
   const curl = (arm % 2 === 0 ? 1 : -1) * Math.sin(progress * Math.PI) * 0.23;
   const angle = petalAngle + curl + Math.sin(index * 17.31) * 0.018;
-  const radius = 64 + Math.pow(progress, 0.76) * Math.max(820, Math.sqrt(total) * 14);
-  const spread = Math.sin(progress * Math.PI) * 62 + Math.sin(index * 9.17) * 12;
+  const radius =
+    64 + Math.pow(progress, 0.76) * Math.max(820, Math.sqrt(total) * 14);
+  const spread =
+    Math.sin(progress * Math.PI) * 62 + Math.sin(index * 9.17) * 12;
   const normalAngle = angle + Math.PI / 2;
 
   return {
@@ -63,7 +69,8 @@ const MEDIA_STYLES: Record<string, string> = {
 };
 
 function MiniLink({ item }: { item: MediaItem }) {
-  const label = item.type === "instagram" ? "IG" : item.type.slice(0, 2).toUpperCase();
+  const label =
+    item.type === "instagram" ? "IG" : item.type.slice(0, 2).toUpperCase();
   return (
     <div
       className={`flex h-5 w-7 items-center justify-center border border-black/15 px-0.5 text-[7px] font-semibold leading-none text-white shadow-[0_1px_4px_rgba(0,0,0,0.22)] ${MEDIA_STYLES[item.type] || MEDIA_STYLES.link}`}
@@ -73,7 +80,13 @@ function MiniLink({ item }: { item: MediaItem }) {
   );
 }
 
-function PreviewTile({ bouquet, point }: { bouquet: PublicBouquet; point: Point }) {
+function PreviewTile({
+  bouquet,
+  point,
+}: {
+  bouquet: PublicBouquet;
+  point: Point;
+}) {
   return (
     <div
       className="group bouquet-preview absolute"
@@ -119,38 +132,49 @@ export default function GalleryClient() {
   const [bouquets, setBouquets] = useState<PublicBouquet[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [hasMore, setHasMore] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [view, setView] = useState<"garden" | "grid">("garden");
+  const [retryKey, setRetryKey] = useState(0);
   const [camera, setCamera] = useState<Camera>({ x: 0, y: 0, zoom: 0.32 });
   const [viewport, setViewport] = useState({ width: 0, height: 0 });
   const canvasRef = useRef<HTMLDivElement>(null);
-  const dragRef = useRef<{ pointerId: number; x: number; y: number; camera: Camera } | null>(null);
+  const dragRef = useRef<{
+    pointerId: number;
+    x: number;
+    y: number;
+    camera: Camera;
+  } | null>(null);
 
   useEffect(() => {
-    loadAllBouquets().then((result) => {
+    let cancelled = false;
+    loadBouquetPage().then((result) => {
+      if (cancelled) return;
       if ("error" in result) setError(result.error);
-      else setBouquets(result);
+      else {
+        setBouquets(result.bouquets);
+        setHasMore(result.hasMore);
+      }
       setLoading(false);
     });
-  }, []);
+    return () => {
+      cancelled = true;
+    };
+  }, [retryKey]);
 
   useEffect(() => {
     const element = canvasRef.current;
     if (!element) return;
-    const updateViewport = () => {
-      const rect = element.getBoundingClientRect();
-      setViewport({ width: rect.width, height: rect.height });
-    };
-    updateViewport();
     const observer = new ResizeObserver((entries) => {
       const rect = entries[0]?.contentRect;
       if (rect) setViewport({ width: rect.width, height: rect.height });
     });
     observer.observe(element);
-    window.addEventListener("resize", updateViewport);
+
     return () => {
       observer.disconnect();
-      window.removeEventListener("resize", updateViewport);
     };
-  }, []);
+  }, [loading, view]);
 
   const points = useMemo(
     () => bouquets.map((_, index) => flowerPosition(index, bouquets.length)),
@@ -164,26 +188,39 @@ export default function GalleryClient() {
     const halfHeight = viewport.height / 2 / camera.zoom + padding;
     return bouquets
       .map((bouquet, index) => ({ bouquet, point: points[index], index }))
-      .filter(({ point }) =>
-        point.x > -halfWidth - camera.x &&
-        point.x < halfWidth - camera.x &&
-        point.y > -halfHeight - camera.y &&
-        point.y < halfHeight - camera.y,
+      .filter(
+        ({ point }) =>
+          point.x > -halfWidth - camera.x &&
+          point.x < halfWidth - camera.x &&
+          point.y > -halfHeight - camera.y &&
+          point.y < halfHeight - camera.y,
       );
   }, [bouquets, camera, points, viewport]);
 
-  const renderedBouquets = viewport.width > 0 && viewport.height > 0
-    ? visible
-    : bouquets.slice(0, Math.min(120, bouquets.length)).map((bouquet, index) => ({
-        bouquet,
-        point: points[index],
-        index,
-      }));
+  const renderedBouquets =
+    viewport.width > 0 && viewport.height > 0
+      ? visible
+      : bouquets
+          .slice(0, Math.min(120, bouquets.length))
+          .map((bouquet, index) => ({
+            bouquet,
+            point: points[index],
+            index,
+          }));
 
   const handlePointerDown = (event: React.PointerEvent<HTMLDivElement>) => {
-    if (event.button !== 0) return;
+    if (
+      event.button !== 0 ||
+      (event.target instanceof Element && event.target.closest("a, button"))
+    )
+      return;
     event.currentTarget.setPointerCapture(event.pointerId);
-    dragRef.current = { pointerId: event.pointerId, x: event.clientX, y: event.clientY, camera };
+    dragRef.current = {
+      pointerId: event.pointerId,
+      x: event.clientX,
+      y: event.clientY,
+      camera,
+    };
   };
 
   const handlePointerMove = (event: React.PointerEvent<HTMLDivElement>) => {
@@ -200,52 +237,210 @@ export default function GalleryClient() {
     dragRef.current = null;
   };
 
-  const handleWheel = (event: React.WheelEvent<HTMLDivElement>) => {
-    event.preventDefault();
-    const rect = event.currentTarget.getBoundingClientRect();
-    const cursorX = event.clientX - rect.left - rect.width / 2;
-    const cursorY = event.clientY - rect.top - rect.height / 2;
-    const nextZoom = Math.min(2.4, Math.max(0.16, camera.zoom * Math.exp(-event.deltaY * 0.001)));
-    const ratio = 1 - nextZoom / camera.zoom;
-    setCamera({
-      zoom: nextZoom,
-      x: camera.x + (cursorX / camera.zoom) * ratio,
-      y: camera.y + (cursorY / camera.zoom) * ratio,
-    });
+  useEffect(() => {
+    const element = canvasRef.current;
+    if (!element) return;
+    const handleWheel = (event: WheelEvent) => {
+      if (event.ctrlKey || event.metaKey) return; // Keep browser pinch/zoom available.
+      event.preventDefault();
+      const rect = element.getBoundingClientRect();
+      const cursorX = event.clientX - rect.left - rect.width / 2;
+      const cursorY = event.clientY - rect.top - rect.height / 2;
+      setCamera((previous) => {
+        const zoom = Math.min(
+          2.4,
+          Math.max(0.16, previous.zoom * Math.exp(-event.deltaY * 0.001)),
+        );
+        return {
+          zoom,
+          x: previous.x + cursorX * (1 / zoom - 1 / previous.zoom),
+          y: previous.y + cursorY * (1 / zoom - 1 / previous.zoom),
+        };
+      });
+    };
+    element.addEventListener("wheel", handleWheel, { passive: false });
+    return () => element.removeEventListener("wheel", handleWheel);
+  }, [loading, view]);
+
+  const loadMore = async () => {
+    if (loadingMore) return;
+    setLoadingMore(true);
+    setError(null);
+    const result = await loadBouquetPage(bouquets.length);
+    if ("error" in result) setError(result.error);
+    else {
+      setBouquets((previous) => [...previous, ...result.bouquets]);
+      setHasMore(result.hasMore);
+    }
+    setLoadingMore(false);
   };
 
   if (loading) return <LoadingFallback />;
 
   return (
     <main className="relative h-screen w-screen overflow-hidden bg-white text-black">
-      <div
-        ref={canvasRef}
-        className="absolute inset-0 cursor-grab touch-none select-none active:cursor-grabbing"
-        onPointerDown={handlePointerDown}
-        onPointerMove={handlePointerMove}
-        onPointerUp={stopDragging}
-        onPointerCancel={stopDragging}
-        onWheel={handleWheel}
-      >
+      {view === "garden" ? (
         <div
-          className="absolute inset-0 origin-center"
-          style={{ transform: `translate(${camera.x * camera.zoom}px, ${camera.y * camera.zoom}px) scale(${camera.zoom})` }}
+          ref={canvasRef}
+          className="absolute inset-0 cursor-grab touch-none select-none active:cursor-grabbing"
+          onPointerDown={handlePointerDown}
+          onPointerMove={handlePointerMove}
+          onPointerUp={stopDragging}
+          onPointerCancel={stopDragging}
+          onLostPointerCapture={stopDragging}
         >
-          <div className="pointer-events-none absolute left-1/2 top-[calc(50%+42px)] z-0 h-[1500px] w-[3px] -translate-x-1/2 bg-[#dfe7dc]/70 shadow-[0_0_8px_rgba(80,100,70,0.08)]" />
-          <div className="pointer-events-none absolute left-[calc(50%-72px)] top-[calc(50%+430px)] z-0 h-8 w-36 -rotate-[24deg] border-t-2 border-[#dfe7dc]/70" style={{ borderRadius: "50% 0 0 0" }} />
-          <div className="pointer-events-none absolute left-[calc(50%-64px)] top-[calc(50%+690px)] z-0 h-8 w-32 rotate-[26deg] border-t-2 border-[#dfe7dc]/70" style={{ borderRadius: "0 50% 0 0" }} />
-          {renderedBouquets.map(({ bouquet, point, index }) => (
-            <PreviewTile key={`${bouquet.slug}-${index}`} bouquet={bouquet} point={point} />
-          ))}
+          <div
+            className="absolute inset-0 origin-center"
+            style={{
+              transform: `translate(${camera.x * camera.zoom}px, ${camera.y * camera.zoom}px) scale(${camera.zoom})`,
+            }}
+          >
+            <div className="pointer-events-none absolute left-1/2 top-[calc(50%+42px)] z-0 h-[1500px] w-[3px] -translate-x-1/2 bg-[#dfe7dc]/70 shadow-[0_0_8px_rgba(80,100,70,0.08)]" />
+            <div
+              className="pointer-events-none absolute left-[calc(50%-72px)] top-[calc(50%+430px)] z-0 h-8 w-36 -rotate-[24deg] border-t-2 border-[#dfe7dc]/70"
+              style={{ borderRadius: "50% 0 0 0" }}
+            />
+            <div
+              className="pointer-events-none absolute left-[calc(50%-64px)] top-[calc(50%+690px)] z-0 h-8 w-32 rotate-[26deg] border-t-2 border-[#dfe7dc]/70"
+              style={{ borderRadius: "0 50% 0 0" }}
+            />
+            {renderedBouquets.map(({ bouquet, point, index }) => (
+              <PreviewTile
+                key={`${bouquet.slug}-${index}`}
+                bouquet={bouquet}
+                point={point}
+              />
+            ))}
+          </div>
         </div>
-      </div>
+      ) : (
+        <div className="h-full overflow-y-auto px-5 pt-24 pb-32">
+          <div className="mx-auto grid max-w-6xl grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
+            {bouquets.map((bouquet) => (
+              <Link
+                key={bouquet.slug}
+                href={`/?b=${bouquet.slug}`}
+                className="rounded-xl border border-black/10 p-3 focus-visible:outline-2 focus-visible:outline-black"
+              >
+                <img
+                  src={bouquet.image_url || "/flowers.png"}
+                  alt="Flower bouquet"
+                  loading="lazy"
+                  className="h-40 w-full object-contain"
+                />
+                <p className="mt-2 truncate text-sm">
+                  {bouquet.slug.replaceAll("-", " ")}
+                </p>
+                <p className="text-xs text-black/50">
+                  {bouquet.items.length} links
+                </p>
+              </Link>
+            ))}
+          </div>
+        </div>
+      )}
+      {!bouquets.length && !loading && (
+        <div className="absolute inset-0 flex items-center justify-center p-6 pointer-events-none">
+          <div
+            className="max-w-sm text-center space-y-4 bg-white/95 p-6 rounded-xl pointer-events-auto"
+            role={error ? "alert" : "status"}
+          >
+            <h1 className="text-xl font-medium">
+              {error
+                ? "The gallery couldn’t be loaded"
+                : "The garden is waiting to bloom"}
+            </h1>
+            <p className="text-sm text-black/60">
+              {error
+                ? "Please try again in a moment."
+                : "Create a bouquet and choose Show in gallery to share it here."}
+            </p>
+            {error && (
+              <button
+                className="rounded-lg bg-black text-white px-5 py-3"
+                onClick={() => {
+                  setError(null);
+                  setLoading(true);
+                  setRetryKey((key) => key + 1);
+                }}
+              >
+                Try again
+              </button>
+            )}
+            <Link href="/" className="block underline text-sm">
+              Create a bouquet
+            </Link>
+          </div>
+        </div>
+      )}
 
       <div className="pointer-events-none absolute left-5 top-5 z-10 flex items-center gap-3 text-[11px] tracking-[0.16em] text-black/45 uppercase">
-        <Link href="/" className="pointer-events-auto text-black/70 transition-colors hover:text-black">
+        <Link
+          href="/"
+          className="pointer-events-auto text-black/70 transition-colors hover:text-black"
+        >
           Link Bouquet
         </Link>
         <span aria-hidden="true">·</span>
-        <span>{error ? "Unable to load bouquets" : `${bouquets.length.toLocaleString()} bouquets`}</span>
+        <span>{bouquets.length.toLocaleString()} bouquets loaded</span>
+      </div>
+      <div className="absolute bottom-5 inset-x-4 z-10 flex flex-wrap items-center justify-center gap-2 text-sm">
+        {error && bouquets.length > 0 && (
+          <p role="alert" className="w-full text-center bg-white p-2">
+            More bouquets couldn’t be loaded. Try again below.
+          </p>
+        )}
+        <button
+          className="rounded-lg bg-white border border-black/15 px-4 py-3"
+          onClick={() =>
+            setView((current) => (current === "garden" ? "grid" : "garden"))
+          }
+        >
+          {view === "garden" ? "Browse grid" : "View garden"}
+        </button>
+        {view === "garden" && (
+          <>
+            <button
+              aria-label="Zoom out"
+              className="rounded-lg bg-white border border-black/15 px-4 py-3"
+              onClick={() =>
+                setCamera((current) => ({
+                  ...current,
+                  zoom: Math.max(0.16, current.zoom / 1.4),
+                }))
+              }
+            >
+              −
+            </button>
+            <button
+              aria-label="Zoom in"
+              className="rounded-lg bg-white border border-black/15 px-4 py-3"
+              onClick={() =>
+                setCamera((current) => ({
+                  ...current,
+                  zoom: Math.min(2.4, current.zoom * 1.4),
+                }))
+              }
+            >
+              +
+            </button>
+            <button
+              className="rounded-lg bg-white border border-black/15 px-4 py-3"
+              onClick={() => setCamera({ x: 0, y: 0, zoom: 0.32 })}
+            >
+              Reset view
+            </button>
+          </>
+        )}
+        {hasMore && bouquets.length > 0 && (
+          <button
+            disabled={loadingMore}
+            onClick={loadMore}
+            className="rounded-lg bg-black text-white px-4 py-3 disabled:opacity-50"
+          >
+            {loadingMore ? "Loading…" : "Load more"}
+          </button>
+        )}
       </div>
     </main>
   );

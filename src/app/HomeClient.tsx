@@ -1,14 +1,9 @@
 "use client";
 
-import {
-  useState,
-  useRef,
-  useCallback,
-  useEffect,
-  Suspense,
-} from "react";
+import { useState, useRef, useCallback, useEffect, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import Image from "next/image";
+import Link from "next/link";
 import { Check, Copy, X } from "lucide-react";
 import {
   saveBouquet,
@@ -16,7 +11,8 @@ import {
   type MediaItem,
   type MediaType,
 } from "@/lib/supabase";
-import { cecilia } from "./fonts";
+import { readDraft, writeDraft, type BouquetDraft } from "@/lib/drafts";
+import { useDialogViewport } from "@/lib/use-dialog-viewport";
 import {
   InstagramEmbed,
   YouTubeEmbed,
@@ -74,10 +70,28 @@ export function LoadingFallback() {
 export default function HomeClient() {
   return (
     <Suspense fallback={<LoadingFallback />}>
-      <Home />
+      <HomeRoute />
     </Suspense>
   );
 }
+
+function HomeRoute() {
+  const params = useSearchParams();
+  return <Home key={params.toString()} />;
+}
+
+const FLOWER_OPTIONS = [
+  "flowers",
+  "flowers2",
+  "5",
+  "1",
+  "2",
+  "3",
+  "4",
+  "6",
+  "7",
+] as const;
+type FlowerOption = (typeof FLOWER_OPTIONS)[number];
 
 // Precurated media items for the sidebar, organized by flower type
 const CURATED_BUCKETS = [
@@ -185,7 +199,8 @@ const CURATED_BUCKETS = [
       },
       {
         type: "link" as MediaType,
-        mediaId: "https://www.newyorker.com/magazine/2016/10/10/sam-altmans-manifest-destiny",
+        mediaId:
+          "https://www.newyorker.com/magazine/2016/10/10/sam-altmans-manifest-destiny",
         label: "Sam Altman's Manifest Destiny",
       },
       {
@@ -229,13 +244,15 @@ const CURATED_BUCKETS = [
       },
       {
         type: "substack" as MediaType,
-        mediaId: "https://chiasm.substack.com/p/so-much-longing-in-so-little-space",
+        mediaId:
+          "https://chiasm.substack.com/p/so-much-longing-in-so-little-space",
         label: "So Much Longing in So Little Space",
       },
       {
         type: "youtube" as MediaType,
         mediaId: "mHQmnumnNgo",
-        label: "Triadisches Ballett von Oskar Schlemmer - Bauhaus (Best Quality)",
+        label:
+          "Triadisches Ballett von Oskar Schlemmer - Bauhaus (Best Quality)",
       },
       {
         type: "youtube" as MediaType,
@@ -245,7 +262,8 @@ const CURATED_BUCKETS = [
       {
         type: "spotify" as MediaType,
         mediaId: "playlist/3vDFi3Ggjv9xoLLbbSWvQR",
-        label: "i have just now come from a party where i was its life and soul. everyon laughed and admired me",
+        label:
+          "i have just now come from a party where i was its life and soul. everyon laughed and admired me",
       },
       {
         type: "youtube" as MediaType,
@@ -266,7 +284,8 @@ const CURATED_BUCKETS = [
     media: [
       {
         type: "link" as MediaType,
-        mediaId: "https://unewsonline.com/2024/10/the-history-and-legacy-of-one-direction/",
+        mediaId:
+          "https://unewsonline.com/2024/10/the-history-and-legacy-of-one-direction/",
         label: "The history and legacy of One Direction",
       },
       {
@@ -350,7 +369,8 @@ const CURATED_BUCKETS = [
       },
       {
         type: "link" as MediaType,
-        mediaId: "https://artsandculture.google.com/asset/the-annunciation-jan-van-eyck/xwFVdn0XxLmf9Q",
+        mediaId:
+          "https://artsandculture.google.com/asset/the-annunciation-jan-van-eyck/xwFVdn0XxLmf9Q",
         label: "The Annunciation - Jan van Eyck",
       },
       {
@@ -374,7 +394,10 @@ function getBouquetTitle(fromName: string, toName: string) {
 
 function getBouquetSummary(note: string, itemCount: number) {
   const trimmedNote = note.trim();
-  return trimmedNote || `A bouquet with ${itemCount} ${itemCount === 1 ? "link" : "links"}.`;
+  return (
+    trimmedNote ||
+    `A bouquet with ${itemCount} ${itemCount === 1 ? "link" : "links"}.`
+  );
 }
 
 function isRunningInAppdropFrame() {
@@ -466,6 +489,69 @@ async function saveBouquetToAppdrop({
   return { savedOutput, shareUrl };
 }
 
+// URL parsing
+function parseUrl(url: string): { type: MediaType; id: string } | null {
+  url = url.trim();
+  if (!url) return null;
+
+  // Accept plain domains and pasted links without requiring a protocol.
+  const hasScheme =
+    /^[a-z][a-z\d+.-]*:/i.test(url) && !/^[^/?#:]+:\d+(?:[/?#]|$)/.test(url);
+  try {
+    const parsed = new URL(
+      url.startsWith("//")
+        ? `https:${url}`
+        : hasScheme
+          ? url
+          : `https://${url}`,
+    );
+    if (parsed.protocol !== "http:" && parsed.protocol !== "https:")
+      return null;
+    if (
+      !hasScheme &&
+      !parsed.hostname.includes(".") &&
+      parsed.hostname !== "localhost"
+    ) {
+      return null;
+    }
+    url = parsed.href;
+  } catch {
+    return null;
+  }
+
+  const igMatch = url.match(/instagram\.com\/(?:reel|p)\/([A-Za-z0-9_-]+)/);
+  if (igMatch) return { type: "instagram", id: igMatch[1] };
+
+  const ytMatch = url.match(
+    /(?:youtube\.com\/(?:watch\?v=|shorts\/)|youtu\.be\/)([A-Za-z0-9_-]+)/,
+  );
+  if (ytMatch) return { type: "youtube", id: ytMatch[1] };
+
+  const spotifyMatch = url.match(
+    /spotify\.com\/(track|album|playlist)\/([A-Za-z0-9]+)/,
+  );
+  if (spotifyMatch)
+    return { type: "spotify", id: `${spotifyMatch[1]}/${spotifyMatch[2]}` };
+
+  const substackMatch = url.match(
+    /(?:([a-zA-Z0-9-]+)\.substack\.com|www\.([a-zA-Z0-9-]+)\.[a-z]+)\/p\/([a-zA-Z0-9-]+)/,
+  );
+  if (substackMatch) return { type: "substack", id: url };
+
+  const letterboxdMatch = url.match(
+    /letterboxd\.com\/(?:film\/([a-zA-Z0-9-]+)|([a-zA-Z0-9_]+)\/film\/([a-zA-Z0-9-]+))/,
+  );
+  if (letterboxdMatch) return { type: "letterboxd", id: url };
+
+  const twitterMatch = url.match(
+    /(?:twitter\.com|x\.com)\/([a-zA-Z0-9_]+)\/status\/(\d+)/,
+  );
+  if (twitterMatch) return { type: "twitter", id: twitterMatch[2] };
+
+  // Fallback: any valid web address becomes a generic link.
+  return { type: "link", id: url };
+}
+
 function Home() {
   const searchParams = useSearchParams();
 
@@ -479,20 +565,22 @@ function Home() {
   const [rotating, setRotating] = useState<string | null>(null);
   const [scaling, setScaling] = useState<string | null>(null);
   const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
-  const [rotateStart, setRotateStart] = useState({ angle: 0, itemRotation: 0 });
+  const [rotateStart] = useState({ angle: 0, itemRotation: 0 });
   const [scaleStart, setScaleStart] = useState({ distance: 0, itemScale: 1 });
 
   // Supabase sharing state
   const [shareUrl, setShareUrl] = useState<string | null>(null);
   const [isShareUrlCopied, setIsShareUrlCopied] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
-  const [isViewingShared, setIsViewingShared] = useState(false);
-  const FLOWER_OPTIONS = ["flowers", "flowers2", "5", "1", "2", "3", "4", "6", "7"] as const;
-  type FlowerOption = typeof FLOWER_OPTIONS[number];
-  const [flowerImage, setFlowerImage] = useState<FlowerOption>(
-    "flowers",
+  const [isLoading, setIsLoading] = useState(Boolean(searchParams.get("b")));
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [retryKey, setRetryKey] = useState(0);
+  const [savedPreviewUrl, setSavedPreviewUrl] = useState<string | null>(null);
+  const [saveError, setSaveError] = useState<string | null>(null);
+  const [isViewingShared, setIsViewingShared] = useState(
+    Boolean(searchParams.get("b")) && searchParams.get("edit") !== "1",
   );
+  const [flowerImage, setFlowerImage] = useState<FlowerOption>("flowers");
   const [bgColor, setBgColor] = useState("#ffffff");
   const [showNoteModal, setShowNoteModal] = useState(false);
   const [note, setNote] = useState(
@@ -511,16 +599,102 @@ function Home() {
   } | null>(null);
 
   const canvasRef = useRef<HTMLDivElement>(null);
-  const modalRef = useRef<HTMLDivElement>(null);
+  const [draftReady, setDraftReady] = useState(false);
+  const [pendingDraft, setPendingDraft] = useState<BouquetDraft | null>(null);
+  const [draftStatus, setDraftStatus] = useState("");
+  const [styleOpen, setStyleOpen] = useState(false);
+  const [undoStack, setUndoStack] = useState<MediaItem[][]>([]);
+  const draftKey = `linkbouquet:draft:v1:${searchParams.get("b") || "new"}`;
+  const checkpoint = () =>
+    setUndoStack((previous) => [...previous.slice(-29), items]);
+  const undo = () => {
+    const previous = undoStack.at(-1);
+    if (!previous) return;
+    setItems(previous);
+    setUndoStack((stack) => stack.slice(0, -1));
+  };
+
+  useEffect(() => {
+    let cancelled = false;
+    Promise.resolve().then(() => {
+      if (cancelled || isViewingShared) return;
+      setPendingDraft(readDraft(draftKey));
+      setDraftReady(true);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [draftKey, isViewingShared]);
+
+  useEffect(() => {
+    if (
+      !draftReady ||
+      pendingDraft ||
+      isViewingShared ||
+      isLoading ||
+      loadError
+    )
+      return;
+    const success = writeDraft(draftKey, {
+      version: 1,
+      items,
+      flowerImage,
+      bgColor,
+      note,
+      fromName,
+      toName,
+      isGallery,
+    });
+    // Storage is external state; report unavailable storage rather than claiming a save.
+    const timer = setTimeout(
+      () =>
+        setDraftStatus(
+          success
+            ? "Draft saved on this device"
+            : "Draft could not be saved on this device",
+        ),
+      0,
+    );
+    return () => clearTimeout(timer);
+  }, [
+    draftKey,
+    draftReady,
+    pendingDraft,
+    isViewingShared,
+    isLoading,
+    loadError,
+    items,
+    flowerImage,
+    bgColor,
+    note,
+    fromName,
+    toName,
+    isGallery,
+  ]);
+
+  const resumeDraft = () => {
+    if (!pendingDraft) return;
+    setItems(pendingDraft.items);
+    setFlowerImage(pendingDraft.flowerImage as FlowerOption);
+    setBgColor(pendingDraft.bgColor);
+    setNote(pendingDraft.note);
+    setFromName(pendingDraft.fromName);
+    setToName(pendingDraft.toName);
+    setIsGallery(pendingDraft.isGallery);
+    setPendingDraft(null);
+  };
   const copyResetTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(
     null,
   );
 
   // Show toast notification
-  const showToast = (message: string, type: "error" | "success" = "error") => {
-    setToast({ message, type });
-    setTimeout(() => setToast(null), 3000);
-  };
+  const showToast = useCallback(
+    (message: string, type: "error" | "success" = "error") => {
+      setToast({ message, type });
+      setTimeout(() => setToast(null), 4000);
+    },
+    [],
+  );
 
   const copyShareUrl = async () => {
     if (!shareUrl) return;
@@ -554,149 +728,117 @@ function Home() {
     const slug = searchParams.get("b");
     const isEditMode = searchParams.get("edit") === "1";
     if (slug) {
-      setIsLoading(true);
-      loadBouquet(slug).then((result) => {
-        if ("error" in result) {
-          showToast("Could not load bouquet: " + result.error, "error");
+      let cancelled = false;
+      loadBouquet(slug)
+        .then((result) => {
+          if (cancelled) return;
+          if ("error" in result) {
+            setLoadError(result.error);
+            setIsLoading(false);
+            return;
+          }
+          setItems(result.items);
+          setSavedNote(result.note || null);
+          setSavedFromName(result.from_name || null);
+          setSavedToName(result.to_name || null);
+          setBgColor(result.bg_color || "#ffffff");
+          // Also set editable note/names if in edit mode
+          if (isEditMode) {
+            setNote(
+              result.note ||
+                "Happy Valentine's Day!\nI love you like the internet!",
+            );
+            setFromName(result.from_name || "");
+            setToName(result.to_name || "");
+          }
+          // Set the flower image based on saved image_url
+          const match = FLOWER_OPTIONS.find(
+            (opt) => result.image_url === `/${opt}.png`,
+          );
+          setFlowerImage(match || "flowers");
+          // Only set as viewing shared if not in edit mode
+          if (isEditMode) {
+            setIsViewingShared(false);
+          } else {
+            setIsViewingShared(true);
+          }
           setIsLoading(false);
-          return;
-        }
-        setItems(result.items);
-        setSavedNote(result.note || null);
-        setSavedFromName(result.from_name || null);
-        setSavedToName(result.to_name || null);
-        setBgColor(result.bg_color || "#ffffff");
-        // Also set editable note/names if in edit mode
-        if (isEditMode) {
-          setNote(result.note || "Happy Valentine's Day!\nI love you like the internet!");
-          setFromName(result.from_name || "");
-          setToName(result.to_name || "");
-        }
-        // Set the flower image based on saved image_url
-        const match = FLOWER_OPTIONS.find(opt => result.image_url === `/${opt}.png`);
-        setFlowerImage(match || "flowers");
-        // Only set as viewing shared if not in edit mode
-        if (isEditMode) {
-          setIsViewingShared(false);
-        } else {
-          setIsViewingShared(true);
-        }
-        setIsLoading(false);
-      });
+        })
+        .catch(() => {
+          if (cancelled) return;
+          setLoadError(
+            "We couldn’t connect to your bouquet. Please try again.",
+          );
+          setIsLoading(false);
+        });
+      return () => {
+        cancelled = true;
+      };
     }
-  }, [searchParams]);
+  }, [searchParams, retryKey]);
 
   // Handle saving bouquet to Supabase
   const handleSave = async () => {
     if (isSaving || items.length === 0) return;
     setIsSaving(true);
-
-    const bouquetData = {
-      image_url: `/${flowerImage}.png`,
-      paths: [],
-      items: items,
-      note: note.trim() ? note : null,
-      bg_color: bgColor,
-      from_name: fromName.trim() ? fromName : null,
-      to_name: toName.trim() ? toName : null,
-      is_gallery: isGallery,
-    };
-
-    const result = await saveBouquet(bouquetData);
-
-    if ("error" in result) {
-      showToast("Could not save bouquet: " + result.error, "error");
-      setIsSaving(false);
-      return;
-    }
-
-    const url = `${window.location.origin}?b=${result.slug}`;
-    // The frame marker is owned by Appdrop and is available independently of
-    // SDK timing. Never replace the iframe while its host is preparing chat.
-    const isAppdropEmbedded = isRunningInAppdropFrame();
-    const appdropResult = await saveBouquetToAppdrop({
-      bgColor,
-      flowerImage,
-      fromName,
-      isGallery,
-      items,
-      note,
-      slug: result.slug,
-      toName,
-      url,
-    }).catch((error) => {
-      console.info("appdrop: bouquet output save skipped", error);
-    });
-
-    setShareUrl(
-      isAppdropEmbedded
-        ? appdropResult?.shareUrl ?? getAppdropBouquetUrl(result.slug)
-        : url,
-    );
-    setIsShareUrlCopied(false);
-    setShowNoteModal(false);
-    setIsSaving(false);
-
-    if (!isAppdropEmbedded) {
-      window.location.href = `?b=${result.slug}`;
-    }
-  };
-
-  // URL parsing
-  const parseUrl = (url: string): { type: MediaType; id: string } | null => {
-    url = url.trim();
-    if (!url) return null;
-
-    // Accept plain domains and pasted links without requiring a protocol.
-    const hasScheme = /^[a-z][a-z\d+.-]*:/i.test(url) &&
-      !/^[^/?#:]+:\d+(?:[/?#]|$)/.test(url);
+    setSaveError(null);
     try {
-      const parsed = new URL(
-        url.startsWith("//") ? `https:${url}` : hasScheme ? url : `https://${url}`,
-      );
-      if (parsed.protocol !== "http:" && parsed.protocol !== "https:") return null;
-      if (!hasScheme && !parsed.hostname.includes(".") && parsed.hostname !== "localhost") {
-        return null;
+      const bouquetData = {
+        image_url: `/${flowerImage}.png`,
+        paths: [],
+        items: items,
+        note: note.trim() ? note : null,
+        bg_color: bgColor,
+        from_name: fromName.trim() ? fromName : null,
+        to_name: toName.trim() ? toName : null,
+        is_gallery: isGallery,
+      };
+
+      const result = await saveBouquet(bouquetData);
+
+      if ("error" in result) {
+        setSaveError(result.error);
+        setIsSaving(false);
+        return;
       }
-      url = parsed.href;
+
+      const url = `${window.location.origin}?b=${result.slug}`;
+      // The frame marker is owned by Appdrop and is available independently of
+      // SDK timing. Never replace the iframe while its host is preparing chat.
+      const isAppdropEmbedded = isRunningInAppdropFrame();
+      const appdropResult = await saveBouquetToAppdrop({
+        bgColor,
+        flowerImage,
+        fromName,
+        isGallery,
+        items,
+        note,
+        slug: result.slug,
+        toName,
+        url,
+      }).catch((error) => {
+        console.info("appdrop: bouquet output save skipped", error);
+      });
+
+      setShareUrl(
+        isAppdropEmbedded
+          ? (appdropResult?.shareUrl ?? getAppdropBouquetUrl(result.slug))
+          : url,
+      );
+      setIsShareUrlCopied(false);
+      setShowNoteModal(false);
+      setIsSaving(false);
+
+      setSavedPreviewUrl(url);
     } catch {
-      return null;
+      setSaveError("Your bouquet hasn’t been saved yet. Please try again.");
+    } finally {
+      setIsSaving(false);
     }
-
-    const igMatch = url.match(/instagram\.com\/(?:reel|p)\/([A-Za-z0-9_-]+)/);
-    if (igMatch) return { type: "instagram", id: igMatch[1] };
-
-    const ytMatch = url.match(
-      /(?:youtube\.com\/(?:watch\?v=|shorts\/)|youtu\.be\/)([A-Za-z0-9_-]+)/,
-    );
-    if (ytMatch) return { type: "youtube", id: ytMatch[1] };
-
-    const spotifyMatch = url.match(
-      /spotify\.com\/(track|album|playlist)\/([A-Za-z0-9]+)/,
-    );
-    if (spotifyMatch)
-      return { type: "spotify", id: `${spotifyMatch[1]}/${spotifyMatch[2]}` };
-
-    const substackMatch = url.match(
-      /(?:([a-zA-Z0-9-]+)\.substack\.com|www\.([a-zA-Z0-9-]+)\.[a-z]+)\/p\/([a-zA-Z0-9-]+)/,
-    );
-    if (substackMatch) return { type: "substack", id: url };
-
-    const letterboxdMatch = url.match(
-      /letterboxd\.com\/(?:film\/([a-zA-Z0-9-]+)|([a-zA-Z0-9_]+)\/film\/([a-zA-Z0-9-]+))/,
-    );
-    if (letterboxdMatch) return { type: "letterboxd", id: url };
-
-    const twitterMatch = url.match(
-      /(?:twitter\.com|x\.com)\/([a-zA-Z0-9_]+)\/status\/(\d+)/,
-    );
-    if (twitterMatch) return { type: "twitter", id: twitterMatch[2] };
-
-    // Fallback: any valid web address becomes a generic link.
-    return { type: "link", id: url };
   };
 
   const addItem = (type: MediaType, mediaId: string) => {
+    checkpoint();
     const newItem: MediaItem = {
       id: crypto.randomUUID(),
       type,
@@ -709,20 +851,6 @@ function Home() {
     setItems((prev) => [...prev, newItem]);
   };
 
-  const handlePaste = async () => {
-    try {
-      const text = await navigator.clipboard.readText();
-      const parsed = parseUrl(text);
-      if (parsed) {
-        addItem(parsed.type, parsed.id);
-      } else {
-        setShowInput(true);
-      }
-    } catch {
-      setShowInput(true);
-    }
-  };
-
   const handleInputSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const formData = new FormData(e.currentTarget);
@@ -732,10 +860,7 @@ function Home() {
       addItem(parsed.type, parsed.id);
       setShowInput(false);
     } else {
-      showToast(
-        "Please enter a domain or link, like example.com",
-        "error",
-      );
+      showToast("Please enter a domain or link, like example.com", "error");
     }
   };
 
@@ -744,6 +869,7 @@ function Home() {
       if (canvasRef.current) {
         const item = items.find((i) => i.id === itemId);
         if (item) {
+          setUndoStack((previous) => [...previous.slice(-29), items]);
           const rect = canvasRef.current.getBoundingClientRect();
           const itemX = (item.x / 100) * rect.width;
           const itemY = (item.y / 100) * rect.height;
@@ -832,25 +958,17 @@ function Home() {
     setScaling(null);
   }, []);
 
-  // Calculate canvas scale based on actual rendered size vs reference size (900px)
-  // Using ResizeObserver for reliable size tracking
-  useEffect(() => {
-    const updateCanvasScale = () => {
-      if (canvasRef.current) {
-        const width = canvasRef.current.offsetWidth;
-        setCanvasScale(width / 900);
-      }
+  const attachCanvas = useCallback((node: HTMLDivElement | null) => {
+    canvasRef.current = node;
+    if (!node) return;
+    const observer = new ResizeObserver(() =>
+      setCanvasScale(node.offsetWidth / 900),
+    );
+    observer.observe(node);
+    return () => {
+      observer.disconnect();
+      canvasRef.current = null;
     };
-
-    updateCanvasScale();
-
-    // ResizeObserver is more reliable than window resize for element size changes
-    const observer = new ResizeObserver(updateCanvasScale);
-    if (canvasRef.current) {
-      observer.observe(canvasRef.current);
-    }
-
-    return () => observer.disconnect();
   }, []);
 
   // Touch event handlers for mobile
@@ -860,6 +978,7 @@ function Home() {
         const touch = e.touches[0];
         const item = items.find((i) => i.id === itemId);
         if (item) {
+          setUndoStack((previous) => [...previous.slice(-29), items]);
           const rect = canvasRef.current.getBoundingClientRect();
           const itemX = (item.x / 100) * rect.width;
           const itemY = (item.y / 100) * rect.height;
@@ -908,57 +1027,99 @@ function Home() {
     setScaling(null);
   }, []);
 
-  // Listen for Cmd+V / Ctrl+V to paste link directly and ESC to close dialogs
   useEffect(() => {
-    const handleKeyDown = async (e: KeyboardEvent) => {
-      // ESC to close dialogs
-      if (e.key === "Escape") {
-        if (showModal) setShowModal(null);
-        if (showInput) setShowInput(false);
-        if (showNoteModal) setShowNoteModal(false);
-        return;
-      }
-
+    const handlePasteEvent = (event: ClipboardEvent) => {
       if (
-        (e.metaKey || e.ctrlKey) &&
-        e.key === "v" &&
-        !isViewingShared &&
-        !showInput
-      ) {
-        try {
-          const text = await navigator.clipboard.readText();
-          const parsed = parseUrl(text);
-          if (parsed) {
-            e.preventDefault();
-            addItem(parsed.type, parsed.id);
-          }
-        } catch {
-          // Clipboard access denied, ignore
-        }
-      }
+        isViewingShared ||
+        showInput ||
+        showNoteModal ||
+        shareUrl ||
+        pendingDraft ||
+        showModal
+      )
+        return;
+      if (
+        event.target instanceof Element &&
+        event.target.closest('input, textarea, [contenteditable="true"]')
+      )
+        return;
+      const parsed = parseUrl(event.clipboardData?.getData("text/plain") || "");
+      if (!parsed) return;
+      event.preventDefault();
+      setUndoStack((previous) => [...previous.slice(-29), items]);
+      setItems((previous) => [
+        ...previous,
+        {
+          id: crypto.randomUUID(),
+          type: parsed.type,
+          mediaId: parsed.id,
+          x: 50,
+          y: 50,
+          rotation: 0,
+          scale: 0.8,
+        },
+      ]);
     };
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [isViewingShared, showInput, showModal, showNoteModal]);
+    const handleEscape = (event: KeyboardEvent) => {
+      if (event.key !== "Escape" || isSaving || pendingDraft) return;
+      setShowModal(null);
+      setShowInput(false);
+      setShowNoteModal(false);
+      setShareUrl(null);
+    };
+    window.addEventListener("paste", handlePasteEvent);
+    window.addEventListener("keydown", handleEscape);
+    return () => {
+      window.removeEventListener("paste", handlePasteEvent);
+      window.removeEventListener("keydown", handleEscape);
+    };
+  }, [
+    isViewingShared,
+    showInput,
+    showModal,
+    showNoteModal,
+    shareUrl,
+    pendingDraft,
+    isSaving,
+    items,
+  ]);
+
+  useDialogViewport(
+    Boolean(
+      showModal ||
+      showInput ||
+      showNoteModal ||
+      shareUrl ||
+      (pendingDraft && !isLoading),
+    ),
+  );
 
   // Focus trap for modals
   useEffect(() => {
-    const isModalOpen = showModal || showInput || showNoteModal;
+    const isModalOpen =
+      showModal ||
+      showInput ||
+      showNoteModal ||
+      shareUrl ||
+      (pendingDraft && !isLoading);
     if (!isModalOpen) return;
 
     const handleTab = (e: KeyboardEvent) => {
       if (e.key !== "Tab") return;
 
-      const modal = document.querySelector('[role="dialog"]');
+      const modal = document.querySelector<HTMLElement>('[role="dialog"]');
       if (!modal) return;
 
       const focusable = modal.querySelectorAll<HTMLElement>(
-        'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])',
+        'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])',
       );
       const first = focusable[0];
       const last = focusable[focusable.length - 1];
 
-      if (e.shiftKey && document.activeElement === first) {
+      if (
+        e.shiftKey &&
+        (document.activeElement === first || document.activeElement === modal)
+      ) {
         e.preventDefault();
         last?.focus();
       } else if (!e.shiftKey && document.activeElement === last) {
@@ -967,20 +1128,33 @@ function Home() {
       }
     };
 
+    const previouslyFocused = document.activeElement as HTMLElement | null;
     // Focus first focusable element in modal
-    setTimeout(() => {
-      const modal = document.querySelector('[role="dialog"]');
+    const focusTimer = setTimeout(() => {
+      const modal = document.querySelector<HTMLElement>('[role="dialog"]');
+      if (modal?.contains(document.activeElement)) return;
       const firstFocusable = modal?.querySelector<HTMLElement>(
-        'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])',
+        'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])',
       );
-      firstFocusable?.focus();
+      // On touch devices, let the user choose a field without opening the
+      // keyboard and shifting focus as soon as the save sheet appears.
+      const target = window.matchMedia("(pointer: coarse)").matches
+        ? modal
+        : firstFocusable;
+      target?.focus({ preventScroll: true });
     }, 100);
 
     window.addEventListener("keydown", handleTab);
-    return () => window.removeEventListener("keydown", handleTab);
-  }, [showModal, showInput, showNoteModal]);
+    return () => {
+      clearTimeout(focusTimer);
+      window.removeEventListener("keydown", handleTab);
+      if (previouslyFocused?.isConnected)
+        previouslyFocused.focus({ preventScroll: true });
+    };
+  }, [showModal, showInput, showNoteModal, shareUrl, pendingDraft, isLoading]);
 
   const deleteItem = (id: string) => {
+    checkpoint();
     setItems(items.filter((i) => i.id !== id));
   };
 
@@ -988,6 +1162,7 @@ function Home() {
   const arrangeItems = () => {
     if (items.length === 0) return;
 
+    checkpoint();
     const positions = [
       { x: 15, y: 25 },
       { x: 85, y: 25 },
@@ -1000,26 +1175,40 @@ function Home() {
     ];
 
     const arranged = items.map((item, index) => {
-      const pos = positions[index % positions.length];
+      const columns = Math.ceil(Math.sqrt(items.length));
+      const rows = Math.ceil(items.length / columns);
+      const pos =
+        items.length <= positions.length
+          ? positions[index]
+          : {
+              x: 15 + (index % columns) * (70 / Math.max(1, columns - 1)),
+              y:
+                15 + Math.floor(index / columns) * (70 / Math.max(1, rows - 1)),
+            };
       return {
         ...item,
         x: pos.x,
         y: pos.y,
         rotation: 0,
-        scale: 0.7,
+        scale: Math.min(0.7, 2 / Math.sqrt(items.length)),
       };
     });
 
     setItems(arranged);
   };
 
-  const createLinkClickHandler = (url: string) =>
-    (e: React.MouseEvent) => {
-      e.stopPropagation();
-      if (!hasDragged) {
-        window.open(url, "_blank", "noopener,noreferrer");
+  const createLinkClickHandler = (url: string) => (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!hasDragged) {
+      try {
+        const target = new URL(url);
+        if (target.protocol === "https:" || target.protocol === "http:")
+          window.open(target.href, "_blank", "noopener,noreferrer");
+      } catch {
+        showToast("This link is not a valid web address.");
       }
-    };
+    }
+  };
 
   const renderEmbed = (item: MediaItem, isModal: boolean = false) => {
     switch (item.type) {
@@ -1036,7 +1225,9 @@ function Home() {
           <SubstackEmbed
             url={item.mediaId}
             isModal={isModal}
-            onLinkClick={isModal ? undefined : createLinkClickHandler(item.mediaId)}
+            onLinkClick={
+              isModal ? undefined : createLinkClickHandler(item.mediaId)
+            }
           />
         );
       case "letterboxd":
@@ -1044,7 +1235,9 @@ function Home() {
           <LetterboxdEmbed
             url={item.mediaId}
             isModal={isModal}
-            onLinkClick={isModal ? undefined : createLinkClickHandler(item.mediaId)}
+            onLinkClick={
+              isModal ? undefined : createLinkClickHandler(item.mediaId)
+            }
           />
         );
       case "link":
@@ -1052,7 +1245,9 @@ function Home() {
           <LinkEmbed
             url={item.mediaId}
             isModal={isModal}
-            onLinkClick={isModal ? undefined : createLinkClickHandler(item.mediaId)}
+            onLinkClick={
+              isModal ? undefined : createLinkClickHandler(item.mediaId)
+            }
           />
         );
       default:
@@ -1060,14 +1255,39 @@ function Home() {
     }
   };
 
+  if (loadError)
+    return (
+      <main className="min-h-screen flex items-center justify-center bg-white p-6 text-black">
+        <div className="max-w-sm text-center space-y-5" role="alert">
+          <h1 className="text-2xl font-medium">
+            Your bouquet couldn’t be opened
+          </h1>
+          <p>{loadError}</p>
+          <button
+            className="rounded-lg bg-[#DB234F] px-6 py-3 text-white"
+            onClick={() => {
+              setLoadError(null);
+              setIsLoading(true);
+              setRetryKey((key) => key + 1);
+            }}
+          >
+            Try again
+          </button>
+          <Link className="block underline" href="/">
+            Create a bouquet
+          </Link>
+        </div>
+      </main>
+    );
+
   // Loading state
-  if (isLoading) {
+  if (isLoading || (!isViewingShared && !draftReady)) {
     return <LoadingFallback />;
   }
 
   return (
     <div
-      className="min-h-screen relative overflow-hidden"
+      className="h-dvh min-h-0 relative overflow-hidden"
       style={{ backgroundColor: bgColor }}
       onMouseMove={handleMouseMove}
       onMouseUp={handleMouseUp}
@@ -1091,18 +1311,40 @@ function Home() {
       {/* Canvas area - centered, always maintains 3:4 aspect ratio */}
       <div className="absolute inset-0 flex items-center justify-center overflow-hidden p-4">
         <div
-          ref={canvasRef}
+          ref={attachCanvas}
           className="relative w-full max-w-[900px]"
           style={{
             aspectRatio: "3/4",
-            maxHeight: "calc(100vh - 2rem)",
+            maxHeight: "calc(100dvh - 2rem)",
           }}
           onDragOver={(e) => e.preventDefault()}
           onDrop={(e) => {
             e.preventDefault();
+            if (isViewingShared) return;
             const data = e.dataTransfer.getData("application/json");
             if (data && canvasRef.current) {
-              const { type, mediaId } = JSON.parse(data);
+              let payload;
+              try {
+                payload = JSON.parse(data);
+              } catch {
+                return;
+              }
+              if (!payload || typeof payload !== "object") return;
+              const { type, mediaId } = payload;
+              if (
+                typeof mediaId !== "string" ||
+                ![
+                  "youtube",
+                  "spotify",
+                  "link",
+                  "twitter",
+                  "instagram",
+                  "letterboxd",
+                  "substack",
+                ].includes(type)
+              )
+                return;
+              checkpoint();
               const rect = canvasRef.current.getBoundingClientRect();
               const x = ((e.clientX - rect.left) / rect.width) * 100;
               const y = ((e.clientY - rect.top) / rect.height) * 100;
@@ -1121,58 +1363,59 @@ function Home() {
         >
           {/* Flowers background */}
           {flowerImage !== "5" && (
-          <div className={`absolute inset-x-[8%] md:inset-x-0 ${["1","2","3","4","6","7"].includes(flowerImage) ? "-bottom-[2%] -top-[50%]" : "-bottom-[40%] -top-[10%]"}`}>
-            <Image
-              src={`/${flowerImage}.png`}
-              alt="Flower bouquet"
-              fill
-              className={`${["1","2","3","4","6","7"].includes(flowerImage) ? "object-contain object-bottom" : "object-contain"} select-none`}
-              draggable={false}
-              priority
-            />
-            {/* Clickable area on flower to paste link or open drawer */}
-            {!isViewingShared && (
-              <button
-                onClick={async () => {
-                  try {
-                    const text = await navigator.clipboard.readText();
-                    const parsed = parseUrl(text);
-                    if (parsed) {
-                      addItem(parsed.type, parsed.id);
-                    } else {
+            <div
+              className={`absolute inset-x-[8%] md:inset-x-0 ${["1", "2", "3", "4", "6", "7"].includes(flowerImage) ? "-bottom-[2%] -top-[50%]" : "-bottom-[40%] -top-[10%]"}`}
+            >
+              <Image
+                src={`/${flowerImage}.png`}
+                alt="Flower bouquet"
+                fill
+                className={`${["1", "2", "3", "4", "6", "7"].includes(flowerImage) ? "object-contain object-bottom" : "object-contain"} select-none`}
+                draggable={false}
+                priority
+              />
+              {/* Clickable area on flower to paste link or open drawer */}
+              {!isViewingShared && (
+                <button
+                  onClick={async () => {
+                    try {
+                      const text = await navigator.clipboard.readText();
+                      const parsed = parseUrl(text);
+                      if (parsed) {
+                        addItem(parsed.type, parsed.id);
+                      } else {
+                        setShowInput(true);
+                      }
+                    } catch {
                       setShowInput(true);
                     }
-                  } catch {
-                    setShowInput(true);
-                  }
-                }}
-                className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-1/3 h-1/3 cursor-pointer z-10"
-                aria-label="Add link"
-              />
-            )}
-          </div>
+                  }}
+                  className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-1/3 h-1/3 cursor-pointer z-10"
+                  aria-label="Add link"
+                />
+              )}
+            </div>
           )}
 
           {/* Empty state prompt */}
           {!isViewingShared && items.length === 0 && (
-            <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-10">
-              <div className="bg-white/80 backdrop-blur-sm rounded-2xl px-8 py-6 text-left max-w-sm shadow-lg">
-                <p className="text-black/80 text-fluid-lg font-medium mb-3">
-                  Start curating your bouquet
+            <div className="absolute inset-x-0 -top-10 md:top-1/3 flex justify-center z-10">
+              <div className="bg-white/90 backdrop-blur-sm rounded-2xl px-5 py-4 text-center max-w-xs shadow-sm">
+                <p className="text-black/80 font-medium mb-3">
+                  A little bouquet of things they’ll love.
                 </p>
-                <p className="text-black/60 text-fluid-sm mb-3">
-                  Paste a link with{" "}
-                  <kbd className="px-1.5 py-0.5 bg-black/10 rounded text-xs font-mono">
-                    ⌘V
-                  </kbd>
-                  <br />
-                  or tap Add Link to begin.
-                </p>
-                <p className="text-black/60 text-fluid-sm">
-                  When it's ready, click Save & Share
-                  <br />
-                  and surprise someone.
-                </p>
+                <button
+                  onClick={() => setShowInput(true)}
+                  className="rounded-lg bg-[#DB234F] px-5 py-3 text-white font-medium"
+                >
+                  Add your first link
+                </button>
+                <button
+                  onClick={() => setSidebarOpen(true)}
+                  className="block mx-auto mt-3 text-sm text-black/70 underline"
+                >
+                  Try a curated link
+                </button>
               </div>
             </div>
           )}
@@ -1194,7 +1437,11 @@ function Home() {
                 transform: `translate(-50%, -50%) rotate(${item.rotation}deg) scale(${item.scale * canvasScale})`,
               }}
               onMouseDown={(e) => {
-                if (isViewingShared) return;
+                if (
+                  isViewingShared ||
+                  (e.target instanceof Element && e.target.closest("button"))
+                )
+                  return;
                 e.preventDefault();
                 handleMouseDown(e, item.id);
               }}
@@ -1205,6 +1452,62 @@ function Home() {
             >
               <div className="relative group">
                 <div
+                  role="button"
+                  tabIndex={0}
+                  aria-label={`Open ${item.type === "link" ? "website" : item.type}. Use arrow keys to move while editing.`}
+                  onKeyDown={(event) => {
+                    if (event.target !== event.currentTarget) return;
+                    if (event.key === "Enter" || event.key === " ") {
+                      event.preventDefault();
+                      setShowModal(item);
+                    }
+                    if (
+                      !isViewingShared &&
+                      [
+                        "ArrowLeft",
+                        "ArrowRight",
+                        "ArrowUp",
+                        "ArrowDown",
+                      ].includes(event.key)
+                    ) {
+                      event.preventDefault();
+                      checkpoint();
+                      const step = event.shiftKey ? 5 : 1;
+                      setItems((previous) =>
+                        previous.map((value) =>
+                          value.id === item.id
+                            ? {
+                                ...value,
+                                x: Math.max(
+                                  5,
+                                  Math.min(
+                                    95,
+                                    value.x +
+                                      (event.key === "ArrowRight"
+                                        ? step
+                                        : event.key === "ArrowLeft"
+                                          ? -step
+                                          : 0),
+                                  ),
+                                ),
+                                y: Math.max(
+                                  5,
+                                  Math.min(
+                                    95,
+                                    value.y +
+                                      (event.key === "ArrowDown"
+                                        ? step
+                                        : event.key === "ArrowUp"
+                                          ? -step
+                                          : 0),
+                                  ),
+                                ),
+                              }
+                            : value,
+                        ),
+                      );
+                    }
+                  }}
                   onClick={() => !hasDragged && setShowModal(item)}
                   className="cursor-pointer"
                 >
@@ -1218,7 +1521,7 @@ function Home() {
                         deleteItem(item.id);
                       }}
                       aria-label="Remove item"
-                      className="absolute -top-2 -right-2 w-8 h-8 rounded-full bg-[#E6E6E6]/50 backdrop-blur-md border-2 border-[#EAEAEA] hover:bg-white/90 text-black flex items-center justify-center shadow-lg md:opacity-0 md:group-hover:opacity-100 transition-opacity focus:outline-none focus:ring-2 focus:ring-black/30"
+                      className="absolute -top-2 -right-2 w-8 h-8 rounded-full bg-[#E6E6E6]/50 backdrop-blur-md border-2 border-[#EAEAEA] hover:bg-white/90 text-black flex items-center justify-center shadow-lg md:opacity-0 md:group-hover:opacity-100 focus:opacity-100 transition-opacity focus:outline-none focus:ring-2 focus:ring-black/30"
                       title="Remove"
                     >
                       <svg
@@ -1256,6 +1559,7 @@ function Home() {
                             itemScale: item.scale,
                           });
                         }
+                        checkpoint();
                         setScaling(item.id);
                       }}
                       className="absolute -bottom-2 -right-2 w-8 h-8 rounded-full bg-[#E6E6E6]/50 backdrop-blur-md border-2 border-[#EAEAEA] hover:bg-white/90 text-black flex items-center justify-center shadow-lg hidden md:flex md:opacity-0 md:group-hover:opacity-100 transition-opacity cursor-nwse-resize"
@@ -1284,16 +1588,26 @@ function Home() {
       </div>
 
       {/* Header */}
-      <a href="/" className="fixed top-3 left-3 sm:top-4 sm:left-4 md:top-6 md:left-6 z-20 cursor-pointer">
+      <Link
+        href="/"
+        className="fixed top-3 left-3 sm:top-4 sm:left-4 md:top-6 md:left-6 z-20 cursor-pointer"
+      >
         <Image
           src="/logo.png"
           alt="Link Bouquet"
           width={500}
           height={400}
           className="h-24 sm:h-32 md:h-40 lg:h-48 xl:h-56 w-auto"
-          style={flowerImage === "5" ? { filter: "brightness(0) saturate(100%) invert(24%) sepia(95%) saturate(4000%) hue-rotate(355deg) brightness(97%) contrast(95%)" } : undefined}
+          style={
+            flowerImage === "5"
+              ? {
+                  filter:
+                    "brightness(0) saturate(100%) invert(24%) sepia(95%) saturate(4000%) hue-rotate(355deg) brightness(97%) contrast(95%)",
+                }
+              : undefined
+          }
         />
-      </a>
+      </Link>
 
       {/* Decorative link image */}
       <div className="fixed bottom-0 left-0 z-40 hidden md:block">
@@ -1323,9 +1637,13 @@ function Home() {
           <div className="bg-[#E6E6E6]/50 backdrop-blur-md rounded-xl p-4">
             {(savedFromName || savedToName) && (
               <div className="flex items-center gap-2 mb-3">
-                <span className="text-black text-sm font-normal">{savedFromName || "?"}</span>
+                <span className="text-black text-sm font-normal">
+                  {savedFromName || "?"}
+                </span>
                 <span className="text-black/50 text-sm">+</span>
-                <span className="text-black text-sm font-normal">{savedToName || "?"}</span>
+                <span className="text-black text-sm font-normal">
+                  {savedToName || "?"}
+                </span>
               </div>
             )}
             {savedNote && (
@@ -1342,7 +1660,10 @@ function Home() {
         <div
           className={`fixed left-0 top-1/2 -translate-y-1/2 z-30 transition-transform duration-300 ${sidebarOpen ? "translate-x-0" : "-translate-x-[280px]"}`}
         >
-          <div className="w-[280px] bg-[#E6E6E6]/50 backdrop-blur-md rounded-r-2xl py-4 flex flex-col relative">
+          <div
+            inert={!sidebarOpen}
+            className="w-[280px] bg-[#E6E6E6]/50 backdrop-blur-md rounded-r-2xl py-4 flex flex-col relative"
+          >
             {/* Profile pictures rows */}
             <div className="px-4 pb-2">
               {/* First row */}
@@ -1387,7 +1708,8 @@ function Home() {
             {/* Media items for selected bucket */}
             <div className="px-4 pt-2 flex flex-col space-y-2 max-h-[460px] overflow-y-auto">
               {CURATED_BUCKETS[selectedBucket].media.map((media, index) => (
-                <div
+                <button
+                  type="button"
                   key={index}
                   draggable
                   onDragStart={(e) => {
@@ -1407,28 +1729,44 @@ function Home() {
                 >
                   {media.type === "youtube" && (
                     <div className="w-10 h-10 bg-[#FF0000] rounded flex items-center justify-center flex-shrink-0">
-                      <svg className="w-5 h-5 text-white" fill="currentColor" viewBox="0 0 24 24">
+                      <svg
+                        className="w-5 h-5 text-white"
+                        fill="currentColor"
+                        viewBox="0 0 24 24"
+                      >
                         <path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z" />
                       </svg>
                     </div>
                   )}
                   {media.type === "spotify" && (
                     <div className="w-10 h-10 bg-[#1DB954] rounded flex items-center justify-center flex-shrink-0">
-                      <svg className="w-5 h-5 text-white" fill="currentColor" viewBox="0 0 24 24">
+                      <svg
+                        className="w-5 h-5 text-white"
+                        fill="currentColor"
+                        viewBox="0 0 24 24"
+                      >
                         <path d="M12 0C5.4 0 0 5.4 0 12s5.4 12 12 12 12-5.4 12-12S18.66 0 12 0zm5.521 17.34c-.24.359-.66.48-1.021.24-2.82-1.74-6.36-2.101-10.561-1.141-.418.122-.779-.179-.899-.539-.12-.421.18-.78.54-.9 4.56-1.021 8.52-.6 11.64 1.32.42.18.479.659.301 1.02zm1.44-3.3c-.301.42-.841.6-1.262.3-3.239-1.98-8.159-2.58-11.939-1.38-.479.12-1.02-.12-1.14-.6-.12-.48.12-1.021.6-1.141C9.6 9.9 15 10.561 18.72 12.84c.361.181.54.78.241 1.2zm.12-3.36C15.24 8.4 8.82 8.16 5.16 9.301c-.6.179-1.2-.181-1.38-.721-.18-.601.18-1.2.72-1.381 4.26-1.26 11.28-1.02 15.721 1.621.539.3.719 1.02.419 1.56-.299.421-1.02.599-1.559.3z" />
                       </svg>
                     </div>
                   )}
                   {media.type === "substack" && (
                     <div className="w-10 h-10 bg-[#FF6719] rounded flex items-center justify-center flex-shrink-0">
-                      <svg className="w-5 h-5 text-white" fill="currentColor" viewBox="0 0 24 24">
+                      <svg
+                        className="w-5 h-5 text-white"
+                        fill="currentColor"
+                        viewBox="0 0 24 24"
+                      >
                         <path d="M22.539 8.242H1.46V5.406h21.08v2.836zM1.46 10.812V24L12 18.11 22.54 24V10.812H1.46zM22.54 0H1.46v2.836h21.08V0z" />
                       </svg>
                     </div>
                   )}
                   {media.type === "letterboxd" && (
                     <div className="w-10 h-10 bg-[#00e054] rounded flex items-center justify-center flex-shrink-0">
-                      <svg className="w-5 h-5 text-[#14181c]" fill="currentColor" viewBox="0 0 500 500">
+                      <svg
+                        className="w-5 h-5 text-[#14181c]"
+                        fill="currentColor"
+                        viewBox="0 0 500 500"
+                      >
                         <path d="M250 0C111.93 0 0 111.93 0 250s111.93 250 250 250 250-111.93 250-250S388.07 0 250 0zm0 472.73C128.52 472.73 27.27 371.48 27.27 250S128.52 27.27 250 27.27 472.73 128.52 472.73 250 371.48 472.73 250 472.73z" />
                         <circle cx="250" cy="250" r="110" />
                       </svg>
@@ -1436,8 +1774,18 @@ function Home() {
                   )}
                   {media.type === "link" && (
                     <div className="w-10 h-10 bg-gray-500 rounded flex items-center justify-center flex-shrink-0">
-                      <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
+                      <svg
+                        className="w-5 h-5 text-white"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"
+                        />
                       </svg>
                     </div>
                   )}
@@ -1449,10 +1797,12 @@ function Home() {
                       {media.type}
                     </span>
                   </div>
-                </div>
+                </button>
               ))}
               {CURATED_BUCKETS[selectedBucket].media.length === 0 && (
-                <p className="text-black/50 text-sm text-center py-4">No links yet</p>
+                <p className="text-black/50 text-sm text-center py-4">
+                  No links yet
+                </p>
               )}
               {CURATED_BUCKETS[selectedBucket].media.length > 0 && (
                 <p className="text-black/50 text-xs text-center pt-4 italic">
@@ -1472,9 +1822,11 @@ function Home() {
           {/* Toggle button */}
           <button
             onClick={() => setSidebarOpen(!sidebarOpen)}
-            aria-label={sidebarOpen ? "Close sidebar" : "Open sidebar"}
+            aria-label={
+              sidebarOpen ? "Close curated links" : "Try a curated link"
+            }
             aria-expanded={sidebarOpen}
-            className="absolute top-1/2 -translate-y-1/2 -right-10 w-10 h-20 bg-[#E6E6E6]/50 backdrop-blur-md rounded-r-lg flex items-center justify-center text-black/50 hover:text-black transition-colors focus:outline-none"
+            className="absolute top-1/2 -translate-y-1/2 -right-10 w-10 h-20 bg-[#E6E6E6]/50 backdrop-blur-md rounded-r-lg flex items-center justify-center text-black/50 hover:text-black transition-colors focus-visible:ring-2 focus-visible:ring-black"
           >
             <svg
               className={`w-5 h-5 transition-transform ${sidebarOpen ? "" : "rotate-180"}`}
@@ -1498,64 +1850,92 @@ function Home() {
         <div className="fixed bottom-6 left-4 right-4 md:left-auto md:right-6 flex justify-between md:justify-start gap-3 z-40 md:flex-col md:w-40">
           {/* Left column on mobile / Top on desktop: Flower toggle + colors */}
           <div className="flex flex-col gap-2 items-center justify-end md:justify-start">
-            {/* Flower grid selector */}
-            <div className="grid grid-cols-3 gap-1.5 md:gap-2">
-              {FLOWER_OPTIONS.map((option) => (
-                <button
-                  key={option}
-                  onClick={() => setFlowerImage(option)}
-                  className={`w-7 h-7 md:w-10 md:h-10 rounded-lg overflow-hidden cursor-pointer transition-all ${flowerImage === option ? "ring-2 ring-white scale-110" : "bg-[#E6E6E6]/50 backdrop-blur-md hover:scale-110"}`}
-                >
-                  <Image
-                    src={`/${option}.png`}
-                    alt={`Flower ${option}`}
-                    width={80}
-                    height={80}
-                    className="w-full h-full object-cover"
-                  />
-                </button>
-              ))}
-            </div>
+            <button
+              className="md:hidden rounded-lg bg-white/90 px-4 py-3 text-sm text-black shadow-sm"
+              aria-expanded={styleOpen}
+              onClick={() => setStyleOpen((open) => !open)}
+            >
+              Flowers & colors
+            </button>
+            <div
+              className={`${styleOpen ? "block" : "hidden"} md:block rounded-xl bg-white/80 p-2`}
+            >
+              {/* Flower grid selector */}
+              <div className="grid grid-cols-3 gap-1.5 md:gap-2">
+                {FLOWER_OPTIONS.map((option) => (
+                  <button
+                    key={option}
+                    onClick={() => setFlowerImage(option)}
+                    aria-pressed={flowerImage === option}
+                    className={`w-7 h-7 md:w-10 md:h-10 rounded-lg overflow-hidden cursor-pointer transition-all ${flowerImage === option ? "ring-2 ring-[#DB234F] scale-110" : "bg-[#E6E6E6]/50 backdrop-blur-md hover:scale-110"}`}
+                  >
+                    <Image
+                      src={`/${option}.png`}
+                      alt={`Flower ${option}`}
+                      width={80}
+                      height={80}
+                      className="w-full h-full object-cover"
+                    />
+                  </button>
+                ))}
+              </div>
 
-            {/* Background color picker squares */}
-            <div className="flex justify-center gap-2 md:gap-3 md:py-2">
-              {/* Pink square */}
-              <button
-                onClick={() => setBgColor("#F77196")}
-                className="w-8 h-8 md:w-10 md:h-10 rounded-lg bg-[#E6E6E6]/50 backdrop-blur-md hover:scale-110 transition-transform cursor-pointer flex items-center justify-center"
-                title="Pink background"
-              >
-                <div className="w-5 h-5 md:w-6 md:h-6 rounded bg-[#F77196]" />
-              </button>
-              {/* Red square */}
-              <button
-                onClick={() => setBgColor("#C2021B")}
-                className="w-8 h-8 md:w-10 md:h-10 rounded-lg bg-[#E6E6E6]/50 backdrop-blur-md hover:scale-110 transition-transform cursor-pointer flex items-center justify-center"
-                title="Red background"
-              >
-                <div className="w-5 h-5 md:w-6 md:h-6 rounded bg-[#C2021B]" />
-              </button>
-              {/* Custom color picker square */}
-              <div className="relative w-8 h-8 md:w-10 md:h-10 rounded-lg bg-[#E6E6E6]/50 backdrop-blur-md hover:scale-110 transition-transform cursor-pointer flex items-center justify-center">
-                <input
-                  type="color"
-                  value={bgColor}
-                  onChange={(e) => setBgColor(e.target.value)}
-                  className="absolute inset-0 w-full h-full rounded-lg cursor-pointer opacity-0"
-                  title="Custom color"
-                />
-                <div
-                  className="w-5 h-5 md:w-6 md:h-6 rounded pointer-events-none"
-                  style={{
-                    background: `conic-gradient(from 0deg, red, yellow, lime, aqua, blue, magenta, red)`,
-                  }}
-                />
+              {/* Background color picker squares */}
+              <div className="flex justify-center gap-2 md:gap-3 md:py-2">
+                {/* Pink square */}
+                <button
+                  onClick={() => setBgColor("#F77196")}
+                  className="w-8 h-8 md:w-10 md:h-10 rounded-lg bg-[#E6E6E6]/50 backdrop-blur-md hover:scale-110 transition-transform cursor-pointer flex items-center justify-center"
+                  title="Pink background"
+                >
+                  <div className="w-5 h-5 md:w-6 md:h-6 rounded bg-[#F77196]" />
+                </button>
+                {/* Red square */}
+                <button
+                  onClick={() => setBgColor("#C2021B")}
+                  className="w-8 h-8 md:w-10 md:h-10 rounded-lg bg-[#E6E6E6]/50 backdrop-blur-md hover:scale-110 transition-transform cursor-pointer flex items-center justify-center"
+                  title="Red background"
+                >
+                  <div className="w-5 h-5 md:w-6 md:h-6 rounded bg-[#C2021B]" />
+                </button>
+                {/* Custom color picker square */}
+                <div className="relative w-8 h-8 md:w-10 md:h-10 rounded-lg bg-[#E6E6E6]/50 backdrop-blur-md hover:scale-110 transition-transform cursor-pointer flex items-center justify-center">
+                  <input
+                    type="color"
+                    value={bgColor}
+                    onChange={(e) => setBgColor(e.target.value)}
+                    className="absolute inset-0 w-full h-full rounded-lg cursor-pointer opacity-0"
+                    title="Custom color"
+                  />
+                  <div
+                    className="w-5 h-5 md:w-6 md:h-6 rounded pointer-events-none"
+                    style={{
+                      background: `conic-gradient(from 0deg, red, yellow, lime, aqua, blue, magenta, red)`,
+                    }}
+                  />
+                </div>
               </div>
             </div>
           </div>
 
           {/* Right column on mobile / Bottom on desktop: Add Link + Save & Share */}
           <div className="flex flex-col gap-2 md:gap-3 w-28 md:w-full md:flex-none justify-end md:justify-start">
+            <div className="flex gap-2">
+              <button
+                onClick={undo}
+                disabled={!undoStack.length}
+                className="flex-1 rounded-lg bg-white/90 px-2 py-2 text-xs text-black disabled:opacity-40"
+              >
+                Undo
+              </button>
+              <button
+                onClick={arrangeItems}
+                disabled={!items.length}
+                className="flex-1 rounded-lg bg-white/90 px-2 py-2 text-xs text-black disabled:opacity-40"
+              >
+                Arrange
+              </button>
+            </div>
             {/* Add link button */}
             <button
               onClick={() => setShowInput(true)}
@@ -1580,66 +1960,137 @@ function Home() {
         </div>
       )}
 
+      {!isViewingShared && !pendingDraft && (
+        <p
+          className="fixed bottom-1 left-4 text-[10px] text-black/60 z-40"
+          role="status"
+        >
+          {draftStatus}
+        </p>
+      )}
+      {pendingDraft && !isViewingShared && (
+        <div
+          role="dialog"
+          tabIndex={-1}
+          aria-modal="true"
+          aria-labelledby="resume-title"
+          className="dialog-viewport fixed inset-0 z-50 flex items-center justify-center bg-black/20 backdrop-blur-sm p-4"
+        >
+          <div className="dialog-panel overflow-y-auto rounded-2xl bg-white p-6 max-w-sm text-black shadow-xl">
+            <h2 id="resume-title" className="text-xl font-medium">
+              Your bouquet is still here
+            </h2>
+            <p className="my-4 text-sm text-black/60">
+              Pick up your saved draft with {pendingDraft.items.length}{" "}
+              {pendingDraft.items.length === 1 ? "link" : "links"}, or start
+              fresh.
+            </p>
+            <button
+              className="rounded-lg bg-[#DB234F] px-5 py-3 text-white"
+              onClick={resumeDraft}
+            >
+              Resume draft
+            </button>
+            <button
+              className="ml-3 underline text-sm"
+              onClick={() => setPendingDraft(null)}
+            >
+              Start fresh
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Note Modal for Save */}
       {showNoteModal && (
         <div
           role="dialog"
+          tabIndex={-1}
           aria-modal="true"
           aria-labelledby="save-modal-title"
-          className="fixed inset-0 bg-black/10 backdrop-blur-md z-50 flex items-center justify-center p-4"
-          onClick={() => setShowNoteModal(false)}
+          className="dialog-viewport fixed inset-0 bg-black/10 backdrop-blur-md z-50 flex items-center justify-center p-4"
+          onClick={() => {
+            if (!isSaving) setShowNoteModal(false);
+          }}
         >
           <div
-            className="bg-white/50 backdrop-blur-xl p-6 rounded-2xl shadow-xl max-w-md w-full"
+            className="dialog-panel flex flex-col bg-white/95 backdrop-blur-xl rounded-2xl shadow-xl max-w-md w-full"
             onClick={(e) => e.stopPropagation()}
           >
-            <h2 id="save-modal-title" className="sr-only">
-              Add a note to your bouquet
-            </h2>
-            {/* From / To row */}
-            <div className="flex gap-3 mb-4">
-              <input
-                type="text"
-                value={fromName}
-                onChange={(e) => setFromName(e.target.value)}
-                placeholder="From"
-                className="flex-1 min-w-0 px-4 py-3 rounded-lg border-none bg-black/10 focus:outline-none font-normal"
-              />
-              <input
-                type="text"
-                value={toName}
-                onChange={(e) => setToName(e.target.value)}
-                placeholder="To"
-                className="flex-1 min-w-0 px-4 py-3 rounded-lg border-none bg-black/10 focus:outline-none font-normal"
-              />
-            </div>
-            <textarea
-              value={note}
-              onChange={(e) => setNote(e.target.value)}
-              placeholder="Happy Valentine's Day!\nI love you like the internet!"
-              className="w-full px-4 py-3 rounded-xl border-none focus:outline-none mb-4 resize-none h-36 bg-transparent"
-              autoFocus
-            />
-            <label className="flex items-center gap-3 mb-4 cursor-pointer group">
-              <div className="relative w-12 h-7 rounded-full bg-black/10 transition-colors duration-200 ease-in-out peer-focus:ring-2 peer-focus:ring-[#DB234F]/50"
-                style={{ backgroundColor: isGallery ? '#DB234F' : 'rgba(0,0,0,0.1)' }}>
-                <div
-                  className="absolute top-0.5 left-0.5 w-6 h-6 bg-white rounded-full shadow-md transition-transform duration-200 ease-in-out"
-                  style={{ transform: isGallery ? 'translateX(20px)' : 'translateX(0)' }}
+            <div className="min-h-0 overflow-y-auto overscroll-contain p-4 sm:p-6">
+              <h2 id="save-modal-title" className="sr-only">
+                Add a note to your bouquet
+              </h2>
+              {/* From / To row */}
+              <div className="flex gap-3 mb-4">
+                <input
+                  type="text"
+                  maxLength={200}
+                  value={fromName}
+                  onChange={(e) => setFromName(e.target.value)}
+                  placeholder="From"
+                  aria-label="From"
+                  className="flex-1 min-w-0 px-4 py-3 rounded-lg border-none bg-black/10 focus:outline-none font-normal"
+                />
+                <input
+                  type="text"
+                  maxLength={200}
+                  value={toName}
+                  onChange={(e) => setToName(e.target.value)}
+                  placeholder="To"
+                  aria-label="To"
+                  className="flex-1 min-w-0 px-4 py-3 rounded-lg border-none bg-black/10 focus:outline-none font-normal"
                 />
               </div>
-              <input
-                type="checkbox"
-                checked={isGallery}
-                onChange={(e) => setIsGallery(e.target.checked)}
-                className="sr-only peer"
+              <textarea
+                aria-label="Personal note"
+                maxLength={10000}
+                value={note}
+                onChange={(e) => setNote(e.target.value)}
+                placeholder="Happy Valentine's Day!\nI love you like the internet!"
+                className="w-full px-4 py-3 rounded-xl border-none focus:outline-none mb-4 resize-none h-24 sm:h-36 bg-black/5"
               />
-              <span className="text-black/70 text-sm">Show in gallery</span>
-            </label>
-            <div className="flex gap-3">
+              <label className="flex items-center gap-3 mb-2 cursor-pointer group">
+                <div
+                  className="relative w-12 h-7 rounded-full bg-black/10 transition-colors duration-200 ease-in-out peer-focus:ring-2 peer-focus:ring-[#DB234F]/50"
+                  style={{
+                    backgroundColor: isGallery ? "#DB234F" : "rgba(0,0,0,0.1)",
+                  }}
+                >
+                  <div
+                    className="absolute top-0.5 left-0.5 w-6 h-6 bg-white rounded-full shadow-md transition-transform duration-200 ease-in-out"
+                    style={{
+                      transform: isGallery
+                        ? "translateX(20px)"
+                        : "translateX(0)",
+                    }}
+                  />
+                </div>
+                <input
+                  type="checkbox"
+                  checked={isGallery}
+                  onChange={(e) => setIsGallery(e.target.checked)}
+                  className="sr-only peer"
+                />
+                <span className="text-black/70 text-sm">Show in gallery</span>
+              </label>
+              <p className="mb-4 text-xs text-black/60">
+                Anyone with your link can open this bouquet. Turn on the gallery
+                to let people discover it, including your note.
+              </p>
+              {saveError && (
+                <p role="alert" className="mb-4 text-sm text-red-800">
+                  {saveError}
+                </p>
+              )}
+            </div>
+            <div className="flex shrink-0 gap-3 p-4 pt-0 sm:p-6 sm:pt-0">
               <button
                 type="button"
-                onClick={() => setShowNoteModal(false)}
+                disabled={isSaving}
+                onClick={() => {
+                  if (!isSaving) setShowNoteModal(false);
+                }}
                 className="flex-1 px-4 py-3 bg-[#E6E6E6]/50 backdrop-blur-md text-black rounded-lg transition-colors font-medium cursor-pointer"
               >
                 Back
@@ -1660,13 +2111,14 @@ function Home() {
       {shareUrl && !isViewingShared && (
         <div
           role="dialog"
+          tabIndex={-1}
           aria-modal="true"
           aria-labelledby="share-modal-title"
-          className="fixed inset-0 z-[60] flex items-center justify-center bg-black/10 p-4 backdrop-blur-md"
+          className="dialog-viewport fixed inset-0 z-[60] flex items-center justify-center bg-black/10 p-4 backdrop-blur-md"
           onClick={() => setShareUrl(null)}
         >
           <div
-            className="w-full max-w-md rounded-2xl bg-white/90 p-6 shadow-xl backdrop-blur-xl"
+            className="dialog-panel overflow-y-auto w-full max-w-md rounded-2xl bg-white/90 p-6 shadow-xl backdrop-blur-xl"
             onClick={(event) => event.stopPropagation()}
           >
             <div className="mb-4 flex items-start justify-between gap-4">
@@ -1678,7 +2130,9 @@ function Home() {
                   id="share-modal-title"
                   className="text-xl font-medium text-black"
                 >
-                  Saved and ready to share in chat
+                  {isRunningInAppdropFrame()
+                    ? "Saved and ready to share in chat"
+                    : "Your bouquet is ready"}
                 </h2>
               </div>
               <button
@@ -1725,6 +2179,39 @@ function Home() {
                 )}
               </button>
             </div>
+            <div className="mt-4 flex flex-wrap gap-3 text-sm">
+              <button
+                className="rounded-lg bg-black/5 px-4 py-3"
+                onClick={async () => {
+                  if (navigator.share) {
+                    try {
+                      await navigator.share({
+                        title: "Link Bouquet",
+                        url: shareUrl,
+                      });
+                    } catch (error) {
+                      if (
+                        !(error instanceof Error && error.name === "AbortError")
+                      )
+                        await copyShareUrl();
+                    }
+                  } else await copyShareUrl();
+                }}
+              >
+                Share
+              </button>
+              <a
+                className="rounded-lg bg-black/5 px-4 py-3"
+                href={savedPreviewUrl || shareUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                Preview
+              </a>
+              <button className="underline" onClick={() => setShareUrl(null)}>
+                Keep editing
+              </button>
+            </div>
             <span className="sr-only" aria-live="polite">
               {isShareUrlCopied ? "Bouquet link copied to clipboard" : ""}
             </span>
@@ -1736,14 +2223,15 @@ function Home() {
       {showInput && (
         <div
           role="dialog"
+          tabIndex={-1}
           aria-modal="true"
           aria-labelledby="url-modal-title"
-          className="fixed inset-0 z-50 flex items-end justify-center"
+          className="dialog-viewport dialog-drawer fixed inset-0 z-50 flex items-end justify-center bg-black/10"
           onClick={() => setShowInput(false)}
         >
           <form
             onSubmit={handleInputSubmit}
-            className="bg-white/80 backdrop-blur-xl p-6 rounded-t-2xl shadow-xl w-full max-w-lg animate-slide-up"
+            className="dialog-panel overflow-y-auto bg-white/95 backdrop-blur-xl p-4 sm:p-6 rounded-t-2xl shadow-xl w-full max-w-lg"
             onClick={(e) => e.stopPropagation()}
           >
             {/* Drawer handle */}
@@ -1754,13 +2242,15 @@ function Home() {
               Add a link
             </h2>
             <p className="text-black text-sm mb-4">
-              Enter a domain or paste a link here, or use ⌘V anywhere on the canvas. Works with
-              YouTube, Spotify, TikTok, Substack & more.
+              Enter a domain or paste a link here. You can also paste directly
+              onto the canvas. Works with YouTube, Spotify, TikTok, Substack &
+              more.
             </p>
             <input
               type="text"
               name="url"
               inputMode="url"
+              enterKeyHint="done"
               autoCapitalize="none"
               autoCorrect="off"
               spellCheck={false}
@@ -1769,7 +2259,7 @@ function Home() {
               className="w-full px-4 py-3 rounded-xl border-none bg-black/10 focus:outline-none mb-4"
               autoFocus
             />
-            <div className="flex gap-3 pb-4">
+            <div className="flex gap-3">
               <button
                 type="button"
                 onClick={() => setShowInput(false)}
@@ -1807,27 +2297,32 @@ function Home() {
       {showModal && (
         <div
           role="dialog"
+          tabIndex={-1}
           aria-modal="true"
           aria-label="Media viewer"
-          className="fixed inset-0 bg-black/10 backdrop-blur-md z-50 flex items-center justify-center p-4"
+          className="dialog-viewport fixed inset-0 bg-black/10 backdrop-blur-md z-50 flex items-center justify-center p-4"
           onClick={() => setShowModal(null)}
         >
           <div
-            className="relative bg-black rounded-2xl overflow-hidden"
+            className="relative w-fit max-w-full"
             onClick={(e) => e.stopPropagation()}
           >
             <button
               onClick={() => setShowModal(null)}
               aria-label="Close media viewer"
-              className="absolute -top-12 right-0 w-10 h-10 rounded-full bg-white/20 hover:bg-white/30 text-white flex items-center justify-center text-2xl focus:outline-none focus:ring-2 focus:ring-white/50"
+              className="absolute -top-12 right-0 w-10 h-10 rounded-full bg-white hover:bg-gray-100 text-black flex items-center justify-center text-2xl focus:outline-none focus:ring-2 focus:ring-white/50"
             >
               ×
             </button>
-            {renderEmbed(showModal, true)}
+            <div
+              className="max-w-[calc(100vw-2rem)] overflow-auto rounded-2xl bg-black"
+              style={{ maxHeight: "calc(var(--dialog-height, 100dvh) - 7rem)" }}
+            >
+              {renderEmbed(showModal, true)}
+            </div>
           </div>
         </div>
       )}
-
     </div>
   );
 }

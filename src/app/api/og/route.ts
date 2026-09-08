@@ -1,3 +1,6 @@
+import { fetchPreviewHtml, PreviewError } from "@/lib/server/preview";
+
+export const runtime = "nodejs";
 import { NextRequest, NextResponse } from 'next/server';
 
 export async function GET(request: NextRequest) {
@@ -8,13 +11,7 @@ export async function GET(request: NextRequest) {
   }
 
   try {
-    const response = await fetch(url, {
-      headers: {
-        'User-Agent': 'Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)',
-      },
-    });
-
-    const html = await response.text();
+    const html = await fetchPreviewHtml(url);
 
     // Extract OG image
     const ogImageMatch = html.match(/<meta[^>]*property="og:image"[^>]*content="([^"]+)"/i)
@@ -29,6 +26,9 @@ export async function GET(request: NextRequest) {
       title: ogTitleMatch?.[1] || null,
     });
   } catch (error) {
+    if (error instanceof PreviewError) {
+      return NextResponse.json({ error: error.message }, { status: error.status });
+    }
     return NextResponse.json({ error: 'Failed to fetch' }, { status: 500 });
   }
 }

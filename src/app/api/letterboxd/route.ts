@@ -1,3 +1,6 @@
+import { fetchPreviewHtml, PreviewError } from "@/lib/server/preview";
+
+export const runtime = "nodejs";
 import { NextResponse } from 'next/server';
 
 export async function GET(request: Request) {
@@ -9,17 +12,7 @@ export async function GET(request: Request) {
   }
 
   try {
-    const response = await fetch(url, {
-      headers: {
-        'User-Agent': 'Mozilla/5.0 (compatible; LinkBouquet/1.0)',
-      },
-    });
-
-    if (!response.ok) {
-      return NextResponse.json({ error: 'Failed to fetch' }, { status: 500 });
-    }
-
-    const html = await response.text();
+    const html = await fetchPreviewHtml(url, true);
 
     // Extract OG meta tags
     const ogImage = html.match(/<meta property="og:image" content="([^"]+)"/)?.[1];
@@ -50,6 +43,9 @@ export async function GET(request: Request) {
       isReview,
     });
   } catch (error) {
+    if (error instanceof PreviewError) {
+      return NextResponse.json({ error: error.message }, { status: error.status });
+    }
     console.error('Letterboxd fetch error:', error);
     return NextResponse.json({ error: 'Failed to fetch data' }, { status: 500 });
   }

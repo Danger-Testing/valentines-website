@@ -1,36 +1,31 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Link Bouquet
 
-## Getting Started
+Create a floral collection of links, keep a local draft, and share a recipient view.
 
-First, run the development server:
+## Development
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+Install with `npm ci`. Set `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_ANON_KEY` in `.env.local`, then run `npm run dev`.
+
+`npm run typecheck`, `npm run lint`, and `npm test` cover TypeScript, lint, and regression tests. Tests use Bun. The privacy test runs in a disposable embedded Postgres database and never connects to production. `npm run build` checks the production build.
+
+## Browser verification with disposable data
+
+Run `npm run test:fixtures` in one terminal. In another, start the app with:
+
+```sh
+NEXT_PUBLIC_SUPABASE_URL=http://127.0.0.1:4110 NEXT_PUBLIC_SUPABASE_ANON_KEY=local-test-key npm run dev -- --port 3108
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+The test service supplies 145 public bouquets, supports saving and lookup, and keeps changes only in memory. Restart it to reset. A request to `http://127.0.0.1:4110/fail-next` makes its next request fail, for testing retry behavior. Never use these environment overrides for a deployment.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+Verify adding a link, refreshing and resuming, removing and undoing, note paste, save/copy/preview/keep editing, missing links, gallery retry, loading a second page, tile navigation, and mobile flower controls. Production writes are unnecessary for these checks.
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+For mobile forms, check 390px and 320px widths, then reduce the viewport height to 420px and 300px to check the space available above a keyboard. Inputs should remain at least 16px, form content should scroll, and Back/Save should remain visible. Dialogs also follow `visualViewport` resize/scroll events for Safari keyboards. Desktop resizing does not emulate a real iOS keyboard; device checks should cover keyboard opening/closing, rotation, and intentional pinch zoom.
 
-## Learn More
+## Database privacy rollout
 
-To learn more about Next.js, take a look at the following resources:
+See [supabase/README.md](supabase/README.md) for the required deployment order and migration. Unlisted bouquets are available to anyone holding their full URL. Only opted-in bouquets should be enumerable in the gallery. The migration must be applied after the updated client and any other consumers are ready.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Link previews
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Preview routes accept public HTTP(S) pages only. DNS addresses are validated during the actual connection, every redirect is revalidated, requests time out after eight seconds, and HTML is capped at 512 KiB. Successful results are cached in a bounded in-process cache for five minutes. The Letterboxd route accepts only Letterboxd hosts.

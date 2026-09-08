@@ -14,6 +14,7 @@ export function InstagramEmbed({
     return (
       <div className="w-[400px] h-[780px] overflow-hidden">
         <iframe
+        title="Media player"
           src={`https://www.instagram.com/reel/${mediaId}/embed`}
           width="540"
           height="1000"
@@ -27,6 +28,7 @@ export function InstagramEmbed({
   return (
     <div className="overflow-hidden w-[180px] h-[320px] rounded-xl shadow-lg bg-white">
       <iframe
+        title="Media player"
         src={`https://www.instagram.com/reel/${mediaId}/embed`}
         width="300"
         height="500"
@@ -49,6 +51,7 @@ export function YouTubeEmbed({
   if (isModal) {
     return (
       <iframe
+        title="Media player"
         src={`https://www.youtube.com/embed/${mediaId}?autoplay=1&playsinline=1`}
         width="560"
         height="315"
@@ -63,6 +66,7 @@ export function YouTubeEmbed({
   return (
     <div className="w-[280px] h-[158px] bg-black rounded-xl overflow-hidden shadow-lg">
       <iframe
+        title="Media player"
         src={`https://www.youtube.com/embed/${mediaId}?playsinline=1`}
         width="280"
         height="158"
@@ -89,6 +93,7 @@ export function SpotifyEmbed({
     return (
       <div className="w-[400px] h-[152px] rounded-xl overflow-hidden shadow-lg">
         <iframe
+        title="Media player"
           src={embedUrl}
           width="400"
           height="152"
@@ -102,6 +107,7 @@ export function SpotifyEmbed({
   return (
     <div className="w-[300px] h-[80px] rounded-xl overflow-hidden shadow-lg">
       <iframe
+        title="Media player"
         src={embedUrl}
         width="300"
         height="80"
@@ -127,6 +133,7 @@ export function TwitterEmbed({
     return (
       <div className="w-[550px] h-[320px] bg-white rounded-xl overflow-hidden shadow-lg">
         <iframe
+        title="Media player"
           src={embedUrl}
           width="550"
           height="480"
@@ -140,6 +147,7 @@ export function TwitterEmbed({
   return (
     <div className="w-[280px] h-[160px] bg-white rounded-xl overflow-hidden shadow-lg">
       <iframe
+        title="Media player"
         src={embedUrl}
         width="280"
         height="320"
@@ -162,25 +170,26 @@ export function SubstackEmbed({
   onLinkClick?: (e: React.MouseEvent) => void;
 }) {
   const [thumbnail, setThumbnail] = useState<string | null>(null);
-  const [title, setTitle] = useState<string>("");
+  const [title, setTitle] = useState(() => url.split("/p/")[1]?.replace(/\?.*$/, "").replace(/-/g, " ") || "Substack Article");
 
   useEffect(() => {
-    const slug = url.split("/p/")[1]?.replace(/\?.*$/, "");
-    setTitle(slug?.replace(/-/g, " ") || "Substack Article");
+    const controller = new AbortController();
 
-    fetch(`/api/og?url=${encodeURIComponent(url)}`)
+    fetch(`/api/og?url=${encodeURIComponent(url)}`, { signal: controller.signal })
       .then((res) => res.json())
       .then((data) => {
         if (data.image) setThumbnail(data.image);
         if (data.title) setTitle(data.title);
       })
       .catch(() => {});
+    return () => controller.abort();
   }, [url]);
 
   if (isModal) {
     return (
       <div className="w-[600px] h-[80vh] bg-white rounded-xl overflow-hidden">
         <iframe
+        title="Media player"
           src={`${url}?embedded=true`}
           width="100%"
           height="100%"
@@ -247,17 +256,13 @@ export function LetterboxdEmbed({
   onLinkClick?: (e: React.MouseEvent) => void;
 }) {
   const [poster, setPoster] = useState<string | null>(null);
-  const [title, setTitle] = useState<string>("");
+  const [title, setTitle] = useState(() => url.match(/letterboxd\.com\/(?:[^/]+\/)?film\/([a-zA-Z0-9-]+)/)?.[1]?.replace(/-/g, " ") || "Letterboxd");
   const [year, setYear] = useState<string | null>(null);
   const [rating, setRating] = useState<string | null>(null);
 
   useEffect(() => {
-    const filmMatch = url.match(/letterboxd\.com\/film\/([a-zA-Z0-9-]+)/);
-    if (filmMatch) {
-      setTitle(filmMatch[1].replace(/-/g, " "));
-    }
-
-    fetch(`/api/letterboxd?url=${encodeURIComponent(url)}`)
+    const controller = new AbortController();
+    fetch(`/api/letterboxd?url=${encodeURIComponent(url)}`, { signal: controller.signal })
       .then((res) => res.json())
       .then((data) => {
         if (data.image) setPoster(data.image);
@@ -266,6 +271,7 @@ export function LetterboxdEmbed({
         if (data.rating) setRating(data.rating);
       })
       .catch(() => {});
+    return () => controller.abort();
   }, [url]);
 
   if (isModal) {
@@ -371,23 +377,20 @@ export function LinkEmbed({
   onLinkClick?: (e: React.MouseEvent) => void;
 }) {
   const [thumbnail, setThumbnail] = useState<string | null>(null);
-  const [title, setTitle] = useState<string>("");
+  const [title, setTitle] = useState(() => {
+    try { return new URL(url).hostname.replace("www.", ""); } catch { return "Link"; }
+  });
 
   useEffect(() => {
-    try {
-      const parsed = new URL(url);
-      setTitle(parsed.hostname.replace("www.", ""));
-    } catch {
-      setTitle("Link");
-    }
-
-    fetch(`/api/og?url=${encodeURIComponent(url)}`)
+    const controller = new AbortController();
+    fetch(`/api/og?url=${encodeURIComponent(url)}`, { signal: controller.signal })
       .then((res) => res.json())
       .then((data) => {
         if (data.image) setThumbnail(data.image);
         if (data.title) setTitle(data.title);
       })
       .catch(() => {});
+    return () => controller.abort();
   }, [url]);
 
   if (isModal) {
