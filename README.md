@@ -20,7 +20,7 @@ The test service supplies 145 public bouquets, supports saving and lookup, and k
 
 Verify adding a link, refreshing and resuming, removing and undoing with Cmd/Ctrl+Z, note paste, save/copy/preview/keep editing, missing links, gallery retry, loading a second page, tile navigation, and mobile flower controls. Production writes are unnecessary for these checks. The original welcome card, flower palette, translucent forms, and garden view are retained.
 
-For mobile forms, check 390px and 320px widths, then reduce the viewport height to 420px and 300px to check the space available above a keyboard. Inputs should remain at least 16px, form content should scroll, and Back/Save should remain visible. Dialogs also follow `visualViewport` resize/scroll events for Safari keyboards. Desktop resizing does not emulate a real iOS keyboard; device checks should cover keyboard opening/closing, rotation, and intentional pinch zoom.
+For mobile forms, check 390px and 320px widths, then reduce the viewport height to 420px, 300px, and 220px to check the space available above a keyboard. Inputs should remain at least 16px, form content should scroll, and Add/Close and Back/Save should remain visible. Test an invalid link and then correct it; the field and its error should stay visible. Dialogs follow `visualViewport` resize/scroll events, including zoom and horizontal panning. Automated tests simulate keyboard resizing without a layout resize, keyboard dismissal, zoom, rotation, and cleanup. Desktop resizing does not emulate a real iOS keyboard; device checks should cover keyboard opening/closing, rotation, and intentional pinch zoom. Embedded apps also depend on their host sizing the iframe to the visible screen.
 
 ## Database privacy rollout
 

@@ -166,7 +166,10 @@
 /* Outside layers so these constraints also override dialog utility classes. */
 .dialog-viewport {
   top: var(--dialog-top, 0px);
+  left: var(--dialog-left, 0px);
+  right: auto;
   bottom: auto;
+  width: var(--dialog-width, 100%);
   height: var(--dialog-height, 100dvh);
   overscroll-behavior: contain;
   padding-top: max(1rem, env(safe-area-inset-top));
@@ -183,8 +186,12 @@
   padding-bottom: 0;
 }
 
-.dialog-drawer > form {
+.dialog-drawer .dialog-actions {
   padding-bottom: max(1rem, env(safe-area-inset-bottom));
+}
+
+.dialog-scroll {
+  scroll-padding-block: 1rem;
 }
 
 @media (max-width: 768px), (pointer: coarse) {

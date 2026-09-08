@@ -557,6 +557,18 @@ function Home() {
 
   const [items, setItems] = useState<MediaItem[]>([]);
   const [showInput, setShowInput] = useState(false);
+  const [inputError, setInputError] = useState<string | null>(null);
+  const inputScrollRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    // Keep validation beside the field visible in a short keyboard viewport.
+    if (inputError && inputScrollRef.current) {
+      inputScrollRef.current.scrollTop = inputScrollRef.current.scrollHeight;
+    }
+  }, [inputError]);
+  const openLinkInput = () => {
+    setInputError(null);
+    setShowInput(true);
+  };
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [selectedBucket, setSelectedBucket] = useState(3);
   const [showModal, setShowModal] = useState<MediaItem | null>(null);
@@ -850,10 +862,12 @@ function Home() {
     const url = formData.get("url") as string;
     const parsed = parseUrl(url);
     if (parsed) {
+      e.currentTarget.querySelector("input")?.blur();
       addItem(parsed.type, parsed.id);
       setShowInput(false);
     } else {
-      showToast("Please enter a domain or link, like example.com", "error");
+      setInputError("Please enter a domain or link, like example.com");
+      e.currentTarget.querySelector("input")?.focus({ preventScroll: true });
     }
   };
 
@@ -1355,19 +1369,7 @@ function Home() {
               {/* Clickable area on flower to paste link or open drawer */}
               {!isViewingShared && (
                 <button
-                  onClick={async () => {
-                    try {
-                      const text = await navigator.clipboard.readText();
-                      const parsed = parseUrl(text);
-                      if (parsed) {
-                        addItem(parsed.type, parsed.id);
-                      } else {
-                        setShowInput(true);
-                      }
-                    } catch {
-                      setShowInput(true);
-                    }
-                  }}
+                  onClick={openLinkInput}
                   className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-1/3 h-1/3 cursor-pointer z-10"
                   aria-label="Add link"
                 />
@@ -1890,7 +1892,7 @@ function Home() {
           <div className="flex flex-col gap-2 md:gap-3 w-28 md:w-full md:flex-none justify-end md:justify-start">
             {/* Add link button */}
             <button
-              onClick={() => setShowInput(true)}
+              onClick={openLinkInput}
               aria-label="Add a link to your bouquet"
               className="h-12 w-full rounded-lg bg-[#E6E6E6]/50 backdrop-blur-md transition-all flex items-center justify-center text-black cursor-pointer focus:outline-none focus:ring-2 focus:ring-black/30"
             >
@@ -2183,35 +2185,53 @@ function Home() {
         >
           <form
             onSubmit={handleInputSubmit}
-            className="dialog-panel overflow-y-auto bg-white/80 backdrop-blur-xl p-6 rounded-t-2xl shadow-xl w-full max-w-lg"
+            className="dialog-panel flex flex-col bg-white/80 backdrop-blur-xl rounded-t-2xl shadow-xl w-full max-w-lg"
             onClick={(e) => e.stopPropagation()}
           >
-            {/* Drawer handle */}
-            <div className="flex justify-center mb-4">
-              <div className="w-12 h-1.5 bg-black/20 rounded-full" />
+            <div
+              ref={inputScrollRef}
+              className="dialog-scroll min-h-0 overflow-y-auto overscroll-contain px-6 pt-6"
+            >
+              {/* Drawer handle */}
+              <div className="flex justify-center mb-4">
+                <div className="w-12 h-1.5 bg-black/20 rounded-full" />
+              </div>
+              <h2 id="url-modal-title" className="sr-only">
+                Add a link
+              </h2>
+              <p className="text-black text-sm mb-4">
+                Enter a domain or paste a link here. You can also paste directly
+                onto the canvas. Works with YouTube, Spotify, TikTok, Substack &
+                more.
+              </p>
+              <input
+                type="text"
+                name="url"
+                inputMode="url"
+                enterKeyHint="done"
+                autoCapitalize="none"
+                autoCorrect="off"
+                spellCheck={false}
+                autoComplete="off"
+                aria-label="Domain or link"
+                aria-invalid={Boolean(inputError)}
+                aria-describedby={inputError ? "link-input-error" : undefined}
+                onChange={() => setInputError(null)}
+                placeholder="example.com or any link"
+                className="w-full px-4 py-3 rounded-xl border-none bg-black/10 focus:outline-none mb-4"
+                autoFocus
+              />
+              {inputError && (
+                <p
+                  id="link-input-error"
+                  role="alert"
+                  className="mb-4 text-sm text-red-800"
+                >
+                  {inputError}
+                </p>
+              )}
             </div>
-            <h2 id="url-modal-title" className="sr-only">
-              Add a link
-            </h2>
-            <p className="text-black text-sm mb-4">
-              Enter a domain or paste a link here. You can also paste directly
-              onto the canvas. Works with YouTube, Spotify, TikTok, Substack &
-              more.
-            </p>
-            <input
-              type="text"
-              name="url"
-              inputMode="url"
-              enterKeyHint="done"
-              autoCapitalize="none"
-              autoCorrect="off"
-              spellCheck={false}
-              aria-label="Domain or link"
-              placeholder="example.com or any link"
-              className="w-full px-4 py-3 rounded-xl border-none bg-black/10 focus:outline-none mb-4"
-              autoFocus
-            />
-            <div className="flex gap-3">
+            <div className="dialog-actions flex shrink-0 gap-3 px-6 pt-2 pb-6">
               <button
                 type="button"
                 onClick={() => setShowInput(false)}
