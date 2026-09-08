@@ -18,7 +18,7 @@ NEXT_PUBLIC_SUPABASE_URL=http://127.0.0.1:4110 NEXT_PUBLIC_SUPABASE_ANON_KEY=loc
 
 The test service supplies 145 public bouquets, supports saving and lookup, and keeps changes only in memory. Restart it to reset. A request to `http://127.0.0.1:4110/fail-next` makes its next request fail, for testing retry behavior. Never use these environment overrides for a deployment.
 
-Verify adding a link, refreshing and resuming, removing and undoing, note paste, save/copy/preview/keep editing, missing links, gallery retry, loading a second page, tile navigation, and mobile flower controls. Production writes are unnecessary for these checks.
+Verify adding a link, refreshing and resuming, removing and undoing with Cmd/Ctrl+Z, note paste, save/copy/preview/keep editing, missing links, gallery retry, loading a second page, tile navigation, and mobile flower controls. Production writes are unnecessary for these checks. The original welcome card, flower palette, translucent forms, and garden view are retained.
 
 For mobile forms, check 390px and 320px widths, then reduce the viewport height to 420px and 300px to check the space available above a keyboard. Inputs should remain at least 16px, form content should scroll, and Back/Save should remain visible. Dialogs also follow `visualViewport` resize/scroll events for Safari keyboards. Desktop resizing does not emulate a real iOS keyboard; device checks should cover keyboard opening/closing, rotation, and intentional pinch zoom.
 

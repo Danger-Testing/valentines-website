@@ -602,17 +602,10 @@ function Home() {
   const [draftReady, setDraftReady] = useState(false);
   const [pendingDraft, setPendingDraft] = useState<BouquetDraft | null>(null);
   const [draftStatus, setDraftStatus] = useState("");
-  const [styleOpen, setStyleOpen] = useState(false);
   const [undoStack, setUndoStack] = useState<MediaItem[][]>([]);
   const draftKey = `linkbouquet:draft:v1:${searchParams.get("b") || "new"}`;
   const checkpoint = () =>
     setUndoStack((previous) => [...previous.slice(-29), items]);
-  const undo = () => {
-    const previous = undoStack.at(-1);
-    if (!previous) return;
-    setItems(previous);
-    setUndoStack((stack) => stack.slice(0, -1));
-  };
 
   useEffect(() => {
     let cancelled = false;
@@ -1061,6 +1054,29 @@ function Home() {
       ]);
     };
     const handleEscape = (event: KeyboardEvent) => {
+      if (
+        (event.metaKey || event.ctrlKey) &&
+        !event.shiftKey &&
+        event.key.toLowerCase() === "z" &&
+        !isViewingShared &&
+        !showInput &&
+        !showNoteModal &&
+        !shareUrl &&
+        !pendingDraft &&
+        !showModal &&
+        !(
+          event.target instanceof Element &&
+          event.target.closest('input, textarea, [contenteditable="true"]')
+        )
+      ) {
+        const previous = undoStack.at(-1);
+        if (previous) {
+          event.preventDefault();
+          setItems(previous);
+          setUndoStack((stack) => stack.slice(0, -1));
+        }
+        return;
+      }
       if (event.key !== "Escape" || isSaving || pendingDraft) return;
       setShowModal(null);
       setShowInput(false);
@@ -1082,6 +1098,7 @@ function Home() {
     pendingDraft,
     isSaving,
     items,
+    undoStack,
   ]);
 
   useDialogViewport(
@@ -1156,45 +1173,6 @@ function Home() {
   const deleteItem = (id: string) => {
     checkpoint();
     setItems(items.filter((i) => i.id !== id));
-  };
-
-  // Arrange items in a nice pattern around the bouquet
-  const arrangeItems = () => {
-    if (items.length === 0) return;
-
-    checkpoint();
-    const positions = [
-      { x: 15, y: 25 },
-      { x: 85, y: 25 },
-      { x: 10, y: 55 },
-      { x: 90, y: 55 },
-      { x: 20, y: 80 },
-      { x: 80, y: 80 },
-      { x: 50, y: 15 },
-      { x: 50, y: 85 },
-    ];
-
-    const arranged = items.map((item, index) => {
-      const columns = Math.ceil(Math.sqrt(items.length));
-      const rows = Math.ceil(items.length / columns);
-      const pos =
-        items.length <= positions.length
-          ? positions[index]
-          : {
-              x: 15 + (index % columns) * (70 / Math.max(1, columns - 1)),
-              y:
-                15 + Math.floor(index / columns) * (70 / Math.max(1, rows - 1)),
-            };
-      return {
-        ...item,
-        x: pos.x,
-        y: pos.y,
-        rotation: 0,
-        scale: Math.min(0.7, 2 / Math.sqrt(items.length)),
-      };
-    });
-
-    setItems(arranged);
   };
 
   const createLinkClickHandler = (url: string) => (e: React.MouseEvent) => {
@@ -1399,23 +1377,24 @@ function Home() {
 
           {/* Empty state prompt */}
           {!isViewingShared && items.length === 0 && (
-            <div className="absolute inset-x-0 -top-10 md:top-1/3 flex justify-center z-10">
-              <div className="bg-white/90 backdrop-blur-sm rounded-2xl px-5 py-4 text-center max-w-xs shadow-sm">
-                <p className="text-black/80 font-medium mb-3">
-                  A little bouquet of things they’ll love.
+            <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-10">
+              <div className="bg-white/80 backdrop-blur-sm rounded-2xl px-8 py-6 text-left max-w-sm shadow-lg">
+                <p className="text-black/80 text-fluid-lg font-medium mb-3">
+                  Start curating your bouquet
                 </p>
-                <button
-                  onClick={() => setShowInput(true)}
-                  className="rounded-lg bg-[#DB234F] px-5 py-3 text-white font-medium"
-                >
-                  Add your first link
-                </button>
-                <button
-                  onClick={() => setSidebarOpen(true)}
-                  className="block mx-auto mt-3 text-sm text-black/70 underline"
-                >
-                  Try a curated link
-                </button>
+                <p className="text-black/60 text-fluid-sm mb-3">
+                  Paste a link with{" "}
+                  <kbd className="px-1.5 py-0.5 bg-black/10 rounded text-xs font-mono">
+                    ⌘V
+                  </kbd>
+                  <br />
+                  or tap Add Link to begin.
+                </p>
+                <p className="text-black/60 text-fluid-sm">
+                  When it&apos;s ready, click Save & Share
+                  <br />
+                  and surprise someone.
+                </p>
               </div>
             </div>
           )}
@@ -1850,92 +1829,65 @@ function Home() {
         <div className="fixed bottom-6 left-4 right-4 md:left-auto md:right-6 flex justify-between md:justify-start gap-3 z-40 md:flex-col md:w-40">
           {/* Left column on mobile / Top on desktop: Flower toggle + colors */}
           <div className="flex flex-col gap-2 items-center justify-end md:justify-start">
-            <button
-              className="md:hidden rounded-lg bg-white/90 px-4 py-3 text-sm text-black shadow-sm"
-              aria-expanded={styleOpen}
-              onClick={() => setStyleOpen((open) => !open)}
-            >
-              Flowers & colors
-            </button>
-            <div
-              className={`${styleOpen ? "block" : "hidden"} md:block rounded-xl bg-white/80 p-2`}
-            >
-              {/* Flower grid selector */}
-              <div className="grid grid-cols-3 gap-1.5 md:gap-2">
-                {FLOWER_OPTIONS.map((option) => (
-                  <button
-                    key={option}
-                    onClick={() => setFlowerImage(option)}
-                    aria-pressed={flowerImage === option}
-                    className={`w-7 h-7 md:w-10 md:h-10 rounded-lg overflow-hidden cursor-pointer transition-all ${flowerImage === option ? "ring-2 ring-[#DB234F] scale-110" : "bg-[#E6E6E6]/50 backdrop-blur-md hover:scale-110"}`}
-                  >
-                    <Image
-                      src={`/${option}.png`}
-                      alt={`Flower ${option}`}
-                      width={80}
-                      height={80}
-                      className="w-full h-full object-cover"
-                    />
-                  </button>
-                ))}
-              </div>
+            {/* Flower grid selector */}
+            <div className="grid grid-cols-3 gap-1.5 md:gap-2">
+              {FLOWER_OPTIONS.map((option) => (
+                <button
+                  key={option}
+                  aria-pressed={flowerImage === option}
+                  onClick={() => setFlowerImage(option)}
+                  className={`w-7 h-7 md:w-10 md:h-10 rounded-lg overflow-hidden cursor-pointer transition-all ${flowerImage === option ? "ring-2 ring-white scale-110" : "bg-[#E6E6E6]/50 backdrop-blur-md hover:scale-110"}`}
+                >
+                  <Image
+                    src={`/${option}.png`}
+                    alt={`Flower ${option}`}
+                    width={80}
+                    height={80}
+                    className="w-full h-full object-cover"
+                  />
+                </button>
+              ))}
+            </div>
 
-              {/* Background color picker squares */}
-              <div className="flex justify-center gap-2 md:gap-3 md:py-2">
-                {/* Pink square */}
-                <button
-                  onClick={() => setBgColor("#F77196")}
-                  className="w-8 h-8 md:w-10 md:h-10 rounded-lg bg-[#E6E6E6]/50 backdrop-blur-md hover:scale-110 transition-transform cursor-pointer flex items-center justify-center"
-                  title="Pink background"
-                >
-                  <div className="w-5 h-5 md:w-6 md:h-6 rounded bg-[#F77196]" />
-                </button>
-                {/* Red square */}
-                <button
-                  onClick={() => setBgColor("#C2021B")}
-                  className="w-8 h-8 md:w-10 md:h-10 rounded-lg bg-[#E6E6E6]/50 backdrop-blur-md hover:scale-110 transition-transform cursor-pointer flex items-center justify-center"
-                  title="Red background"
-                >
-                  <div className="w-5 h-5 md:w-6 md:h-6 rounded bg-[#C2021B]" />
-                </button>
-                {/* Custom color picker square */}
-                <div className="relative w-8 h-8 md:w-10 md:h-10 rounded-lg bg-[#E6E6E6]/50 backdrop-blur-md hover:scale-110 transition-transform cursor-pointer flex items-center justify-center">
-                  <input
-                    type="color"
-                    value={bgColor}
-                    onChange={(e) => setBgColor(e.target.value)}
-                    className="absolute inset-0 w-full h-full rounded-lg cursor-pointer opacity-0"
-                    title="Custom color"
-                  />
-                  <div
-                    className="w-5 h-5 md:w-6 md:h-6 rounded pointer-events-none"
-                    style={{
-                      background: `conic-gradient(from 0deg, red, yellow, lime, aqua, blue, magenta, red)`,
-                    }}
-                  />
-                </div>
+            {/* Background color picker squares */}
+            <div className="flex justify-center gap-2 md:gap-3 md:py-2">
+              {/* Pink square */}
+              <button
+                onClick={() => setBgColor("#F77196")}
+                className="w-8 h-8 md:w-10 md:h-10 rounded-lg bg-[#E6E6E6]/50 backdrop-blur-md hover:scale-110 transition-transform cursor-pointer flex items-center justify-center"
+                title="Pink background"
+              >
+                <div className="w-5 h-5 md:w-6 md:h-6 rounded bg-[#F77196]" />
+              </button>
+              {/* Red square */}
+              <button
+                onClick={() => setBgColor("#C2021B")}
+                className="w-8 h-8 md:w-10 md:h-10 rounded-lg bg-[#E6E6E6]/50 backdrop-blur-md hover:scale-110 transition-transform cursor-pointer flex items-center justify-center"
+                title="Red background"
+              >
+                <div className="w-5 h-5 md:w-6 md:h-6 rounded bg-[#C2021B]" />
+              </button>
+              {/* Custom color picker square */}
+              <div className="relative w-8 h-8 md:w-10 md:h-10 rounded-lg bg-[#E6E6E6]/50 backdrop-blur-md hover:scale-110 transition-transform cursor-pointer flex items-center justify-center">
+                <input
+                  type="color"
+                  value={bgColor}
+                  onChange={(e) => setBgColor(e.target.value)}
+                  className="absolute inset-0 w-full h-full rounded-lg cursor-pointer opacity-0"
+                  title="Custom color"
+                />
+                <div
+                  className="w-5 h-5 md:w-6 md:h-6 rounded pointer-events-none"
+                  style={{
+                    background: `conic-gradient(from 0deg, red, yellow, lime, aqua, blue, magenta, red)`,
+                  }}
+                />
               </div>
             </div>
           </div>
 
           {/* Right column on mobile / Bottom on desktop: Add Link + Save & Share */}
           <div className="flex flex-col gap-2 md:gap-3 w-28 md:w-full md:flex-none justify-end md:justify-start">
-            <div className="flex gap-2">
-              <button
-                onClick={undo}
-                disabled={!undoStack.length}
-                className="flex-1 rounded-lg bg-white/90 px-2 py-2 text-xs text-black disabled:opacity-40"
-              >
-                Undo
-              </button>
-              <button
-                onClick={arrangeItems}
-                disabled={!items.length}
-                className="flex-1 rounded-lg bg-white/90 px-2 py-2 text-xs text-black disabled:opacity-40"
-              >
-                Arrange
-              </button>
-            </div>
             {/* Add link button */}
             <button
               onClick={() => setShowInput(true)}
@@ -1947,7 +1899,10 @@ function Home() {
 
             {/* Save button */}
             <button
-              onClick={() => setShowNoteModal(true)}
+              onClick={() => {
+                setSaveError(null);
+                setShowNoteModal(true);
+              }}
               disabled={items.length === 0}
               aria-label="Save and share your bouquet"
               className="h-12 w-full rounded-lg bg-[#DB234F] hover:bg-[#B81D42] transition-all flex items-center justify-center text-white disabled:opacity-50 cursor-pointer focus:outline-none focus:ring-2 focus:ring-[#DB234F]/50"
@@ -1961,10 +1916,7 @@ function Home() {
       )}
 
       {!isViewingShared && !pendingDraft && (
-        <p
-          className="fixed bottom-1 left-4 text-[10px] text-black/60 z-40"
-          role="status"
-        >
+        <p className="sr-only" role="status">
           {draftStatus}
         </p>
       )}
@@ -2014,10 +1966,10 @@ function Home() {
           }}
         >
           <div
-            className="dialog-panel flex flex-col bg-white/95 backdrop-blur-xl rounded-2xl shadow-xl max-w-md w-full"
+            className="dialog-panel flex flex-col bg-white/50 backdrop-blur-xl rounded-2xl shadow-xl max-w-md w-full"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="min-h-0 overflow-y-auto overscroll-contain p-4 sm:p-6">
+            <div className="min-h-0 overflow-y-auto overscroll-contain p-6">
               <h2 id="save-modal-title" className="sr-only">
                 Add a note to your bouquet
               </h2>
@@ -2048,7 +2000,7 @@ function Home() {
                 value={note}
                 onChange={(e) => setNote(e.target.value)}
                 placeholder="Happy Valentine's Day!\nI love you like the internet!"
-                className="w-full px-4 py-3 rounded-xl border-none focus:outline-none mb-4 resize-none h-24 sm:h-36 bg-black/5"
+                className="w-full px-4 py-3 rounded-xl border-none focus:outline-none mb-4 resize-none h-36 bg-transparent"
               />
               <label className="flex items-center gap-3 mb-2 cursor-pointer group">
                 <div
@@ -2084,7 +2036,7 @@ function Home() {
                 </p>
               )}
             </div>
-            <div className="flex shrink-0 gap-3 p-4 pt-0 sm:p-6 sm:pt-0">
+            <div className="flex shrink-0 gap-3 p-6 pt-0">
               <button
                 type="button"
                 disabled={isSaving}
@@ -2231,7 +2183,7 @@ function Home() {
         >
           <form
             onSubmit={handleInputSubmit}
-            className="dialog-panel overflow-y-auto bg-white/95 backdrop-blur-xl p-4 sm:p-6 rounded-t-2xl shadow-xl w-full max-w-lg"
+            className="dialog-panel overflow-y-auto bg-white/80 backdrop-blur-xl p-6 rounded-t-2xl shadow-xl w-full max-w-lg"
             onClick={(e) => e.stopPropagation()}
           >
             {/* Drawer handle */}

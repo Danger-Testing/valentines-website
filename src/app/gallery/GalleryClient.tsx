@@ -134,7 +134,6 @@ export default function GalleryClient() {
   const [error, setError] = useState<string | null>(null);
   const [hasMore, setHasMore] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
-  const [view, setView] = useState<"garden" | "grid">("garden");
   const [retryKey, setRetryKey] = useState(0);
   const [camera, setCamera] = useState<Camera>({ x: 0, y: 0, zoom: 0.32 });
   const [viewport, setViewport] = useState({ width: 0, height: 0 });
@@ -174,7 +173,7 @@ export default function GalleryClient() {
     return () => {
       observer.disconnect();
     };
-  }, [loading, view]);
+  }, [loading]);
 
   const points = useMemo(
     () => bouquets.map((_, index) => flowerPosition(index, bouquets.length)),
@@ -260,7 +259,7 @@ export default function GalleryClient() {
     };
     element.addEventListener("wheel", handleWheel, { passive: false });
     return () => element.removeEventListener("wheel", handleWheel);
-  }, [loading, view]);
+  }, [loading]);
 
   const loadMore = async () => {
     if (loadingMore) return;
@@ -279,66 +278,39 @@ export default function GalleryClient() {
 
   return (
     <main className="relative h-screen w-screen overflow-hidden bg-white text-black">
-      {view === "garden" ? (
+      <div
+        ref={canvasRef}
+        className="absolute inset-0 cursor-grab touch-none select-none active:cursor-grabbing"
+        onPointerDown={handlePointerDown}
+        onPointerMove={handlePointerMove}
+        onPointerUp={stopDragging}
+        onPointerCancel={stopDragging}
+        onLostPointerCapture={stopDragging}
+      >
         <div
-          ref={canvasRef}
-          className="absolute inset-0 cursor-grab touch-none select-none active:cursor-grabbing"
-          onPointerDown={handlePointerDown}
-          onPointerMove={handlePointerMove}
-          onPointerUp={stopDragging}
-          onPointerCancel={stopDragging}
-          onLostPointerCapture={stopDragging}
+          className="absolute inset-0 origin-center"
+          style={{
+            transform: `translate(${camera.x * camera.zoom}px, ${camera.y * camera.zoom}px) scale(${camera.zoom})`,
+          }}
         >
+          <div className="pointer-events-none absolute left-1/2 top-[calc(50%+42px)] z-0 h-[1500px] w-[3px] -translate-x-1/2 bg-[#dfe7dc]/70 shadow-[0_0_8px_rgba(80,100,70,0.08)]" />
           <div
-            className="absolute inset-0 origin-center"
-            style={{
-              transform: `translate(${camera.x * camera.zoom}px, ${camera.y * camera.zoom}px) scale(${camera.zoom})`,
-            }}
-          >
-            <div className="pointer-events-none absolute left-1/2 top-[calc(50%+42px)] z-0 h-[1500px] w-[3px] -translate-x-1/2 bg-[#dfe7dc]/70 shadow-[0_0_8px_rgba(80,100,70,0.08)]" />
-            <div
-              className="pointer-events-none absolute left-[calc(50%-72px)] top-[calc(50%+430px)] z-0 h-8 w-36 -rotate-[24deg] border-t-2 border-[#dfe7dc]/70"
-              style={{ borderRadius: "50% 0 0 0" }}
+            className="pointer-events-none absolute left-[calc(50%-72px)] top-[calc(50%+430px)] z-0 h-8 w-36 -rotate-[24deg] border-t-2 border-[#dfe7dc]/70"
+            style={{ borderRadius: "50% 0 0 0" }}
+          />
+          <div
+            className="pointer-events-none absolute left-[calc(50%-64px)] top-[calc(50%+690px)] z-0 h-8 w-32 rotate-[26deg] border-t-2 border-[#dfe7dc]/70"
+            style={{ borderRadius: "0 50% 0 0" }}
+          />
+          {renderedBouquets.map(({ bouquet, point, index }) => (
+            <PreviewTile
+              key={`${bouquet.slug}-${index}`}
+              bouquet={bouquet}
+              point={point}
             />
-            <div
-              className="pointer-events-none absolute left-[calc(50%-64px)] top-[calc(50%+690px)] z-0 h-8 w-32 rotate-[26deg] border-t-2 border-[#dfe7dc]/70"
-              style={{ borderRadius: "0 50% 0 0" }}
-            />
-            {renderedBouquets.map(({ bouquet, point, index }) => (
-              <PreviewTile
-                key={`${bouquet.slug}-${index}`}
-                bouquet={bouquet}
-                point={point}
-              />
-            ))}
-          </div>
+          ))}
         </div>
-      ) : (
-        <div className="h-full overflow-y-auto px-5 pt-24 pb-32">
-          <div className="mx-auto grid max-w-6xl grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
-            {bouquets.map((bouquet) => (
-              <Link
-                key={bouquet.slug}
-                href={`/?b=${bouquet.slug}`}
-                className="rounded-xl border border-black/10 p-3 focus-visible:outline-2 focus-visible:outline-black"
-              >
-                <img
-                  src={bouquet.image_url || "/flowers.png"}
-                  alt="Flower bouquet"
-                  loading="lazy"
-                  className="h-40 w-full object-contain"
-                />
-                <p className="mt-2 truncate text-sm">
-                  {bouquet.slug.replaceAll("-", " ")}
-                </p>
-                <p className="text-xs text-black/50">
-                  {bouquet.items.length} links
-                </p>
-              </Link>
-            ))}
-          </div>
-        </div>
-      )}
+      </div>
       {!bouquets.length && !loading && (
         <div className="absolute inset-0 flex items-center justify-center p-6 pointer-events-none">
           <div
@@ -390,53 +362,11 @@ export default function GalleryClient() {
             More bouquets couldn’t be loaded. Try again below.
           </p>
         )}
-        <button
-          className="rounded-lg bg-white border border-black/15 px-4 py-3"
-          onClick={() =>
-            setView((current) => (current === "garden" ? "grid" : "garden"))
-          }
-        >
-          {view === "garden" ? "Browse grid" : "View garden"}
-        </button>
-        {view === "garden" && (
-          <>
-            <button
-              aria-label="Zoom out"
-              className="rounded-lg bg-white border border-black/15 px-4 py-3"
-              onClick={() =>
-                setCamera((current) => ({
-                  ...current,
-                  zoom: Math.max(0.16, current.zoom / 1.4),
-                }))
-              }
-            >
-              −
-            </button>
-            <button
-              aria-label="Zoom in"
-              className="rounded-lg bg-white border border-black/15 px-4 py-3"
-              onClick={() =>
-                setCamera((current) => ({
-                  ...current,
-                  zoom: Math.min(2.4, current.zoom * 1.4),
-                }))
-              }
-            >
-              +
-            </button>
-            <button
-              className="rounded-lg bg-white border border-black/15 px-4 py-3"
-              onClick={() => setCamera({ x: 0, y: 0, zoom: 0.32 })}
-            >
-              Reset view
-            </button>
-          </>
-        )}
         {hasMore && bouquets.length > 0 && (
           <button
             disabled={loadingMore}
             onClick={loadMore}
-            className="rounded-lg bg-black text-white px-4 py-3 disabled:opacity-50"
+            className="text-[11px] tracking-[0.16em] uppercase text-black/60 underline underline-offset-4 px-4 py-3 disabled:opacity-50"
           >
             {loadingMore ? "Loading…" : "Load more"}
           </button>
