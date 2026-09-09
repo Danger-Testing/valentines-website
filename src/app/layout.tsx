@@ -1,6 +1,5 @@
 import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
-import { Analytics } from "@vercel/analytics/next";
 import Script from "next/script";
 import "./globals.css";
 import { cecilia } from "./fonts";
@@ -70,7 +69,6 @@ export default function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} ${cecilia.variable} antialiased`}
       >
         {children}
-        <Analytics />
       </body>
     </html>
   );
