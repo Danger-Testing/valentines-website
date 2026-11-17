@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { ogTag } from '@/lib/og';
 
 export async function GET(request: NextRequest) {
   const url = request.nextUrl.searchParams.get('url');
@@ -16,19 +17,11 @@ export async function GET(request: NextRequest) {
 
     const html = await response.text();
 
-    // Extract OG image
-    const ogImageMatch = html.match(/<meta[^>]*property="og:image"[^>]*content="([^"]+)"/i)
-      || html.match(/<meta[^>]*content="([^"]+)"[^>]*property="og:image"/i);
-
-    // Extract OG title
-    const ogTitleMatch = html.match(/<meta[^>]*property="og:title"[^>]*content="([^"]+)"/i)
-      || html.match(/<meta[^>]*content="([^"]+)"[^>]*property="og:title"/i);
-
     return NextResponse.json({
-      image: ogImageMatch?.[1] || null,
-      title: ogTitleMatch?.[1] || null,
+      image: ogTag(html, 'image'),
+      title: ogTag(html, 'title'),
     });
-  } catch (error) {
+  } catch {
     return NextResponse.json({ error: 'Failed to fetch' }, { status: 500 });
   }
 }

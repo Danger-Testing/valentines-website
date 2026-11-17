@@ -1,25 +1,17 @@
 import type { Metadata, Viewport } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
 import { Analytics } from "@vercel/analytics/next";
 import Script from "next/script";
 import "./globals.css";
-import { cecilia } from "./fonts";
-
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
-});
-
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
-});
 
 export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
   maximumScale: 1,
   userScalable: false,
+  viewportFit: "cover",
+  // The keyboard covers the page instead of resizing it, so the canvas does
+  // not re-lay itself out every time a field is focused
+  interactiveWidget: "resizes-visual",
 };
 
 export const metadata: Metadata = {
@@ -66,9 +58,7 @@ export default function RootLayout({
           strategy="beforeInteractive"
         />
       </head>
-      <body
-        className={`${geistSans.variable} ${geistMono.variable} ${cecilia.variable} antialiased`}
-      >
+      <body className="antialiased">
         {children}
         <Analytics />
       </body>

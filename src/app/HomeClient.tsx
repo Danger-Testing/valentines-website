@@ -3,9 +3,10 @@
 import {
   useState,
   useRef,
-  useCallback,
   useEffect,
+  useEffectEvent,
   Suspense,
+  type ReactNode,
 } from "react";
 import { useSearchParams } from "next/navigation";
 import Image from "next/image";
@@ -16,16 +17,17 @@ import {
   type MediaItem,
   type MediaType,
 } from "@/lib/supabase";
-import { cecilia } from "./fonts";
+import { MediaEmbed } from "@/components/embeds";
+import { AddLinkDrawer } from "@/components/AddLinkDrawer";
+import { fitToVisualViewport } from "@/lib/viewport";
 import {
-  InstagramEmbed,
-  YouTubeEmbed,
-  SpotifyEmbed,
-  TwitterEmbed,
-  SubstackEmbed,
-  LetterboxdEmbed,
-  LinkEmbed,
-} from "@/components/embeds";
+  LetterboxdIcon,
+  LinkIcon,
+  SpotifyIcon,
+  SubstackIcon,
+  YouTubeIcon,
+} from "@/components/icons";
+import { CURATED_BUCKETS } from "./curated";
 
 type AppdropOutputVisibility = "private" | "unlisted" | "public";
 
@@ -62,7 +64,7 @@ declare global {
   }
 }
 
-export function LoadingFallback() {
+function LoadingFallback() {
   return (
     <div className="min-h-screen bg-white flex flex-col items-center justify-center gap-4">
       <div className="w-12 h-12 border-4 border-gray-200 border-t-black rounded-full animate-spin"></div>
@@ -78,289 +80,6 @@ export default function HomeClient() {
     </Suspense>
   );
 }
-
-// Precurated media items for the sidebar, organized by flower type
-const CURATED_BUCKETS = [
-  {
-    name: "marc",
-    pfp: "/pfp.jpg",
-    link: "https://x.com/marcgmbh",
-    media: [
-      {
-        type: "spotify" as MediaType,
-        mediaId: "track/3gighwbMyIfJKVpauvANY2",
-        label: "The City Never Felt So Good - 1tbsp",
-      },
-      {
-        type: "spotify" as MediaType,
-        mediaId: "track/1RAiHhh4HfUgcA1ATlg9yA",
-        label: "Comin Home - Jespfur & Paula",
-      },
-      {
-        type: "letterboxd" as MediaType,
-        mediaId: "https://letterboxd.com/film/tar-2022/",
-        label: "Tár (2022)",
-      },
-      {
-        type: "youtube" as MediaType,
-        mediaId: "drb-tch9o74",
-        label: "WHITE TEE [INCREDIBLE VIBES DISCOVERED]",
-      },
-      {
-        type: "youtube" as MediaType,
-        mediaId: "5U4S4ki4YZs",
-        label: "Why Humans Create",
-      },
-      {
-        type: "substack" as MediaType,
-        mediaId: "https://www.frederikjournals.com/p/the-way-south",
-        label: "The Way South",
-      },
-      {
-        type: "link" as MediaType,
-        mediaId: "https://magazine.032c.com/magazine/michel-majerus",
-        label: "Michel Majerus - 032c",
-      },
-      {
-        type: "letterboxd" as MediaType,
-        mediaId: "https://letterboxd.com/film/babylon-2022/",
-        label: "Babylon (2022)",
-      },
-      {
-        type: "instagram" as MediaType,
-        mediaId: "DLihxUgsawm",
-        label: "Instagram",
-      },
-      {
-        type: "instagram" as MediaType,
-        mediaId: "DLkKDr1MnXg",
-        label: "Instagram",
-      },
-      {
-        type: "spotify" as MediaType,
-        mediaId: "track/4E7H6rqgxHdSoeGSS28CTY",
-        label: "Benz Friendz - Future ft. André 3000",
-      },
-      {
-        type: "youtube" as MediaType,
-        mediaId: "B5kFBFp-9H0",
-        label: "YouTube",
-      },
-      {
-        type: "spotify" as MediaType,
-        mediaId: "track/2M9ro2krNb7nr7HSprkEgo",
-        label: "Fast Car - Tracy Chapman",
-      },
-      {
-        type: "youtube" as MediaType,
-        mediaId: "2Dpd_8n3A5U",
-        label: "FILMMAKING IS A SPORT",
-      },
-      {
-        type: "youtube" as MediaType,
-        mediaId: "pqzcCfUglws",
-        label: "The Psychology of Human Misjudgement - Charlie Munger",
-      },
-      {
-        type: "youtube" as MediaType,
-        mediaId: "0fKBhvDjuy0",
-        label: "Powers of Ten™ (1977)",
-      },
-      {
-        type: "substack" as MediaType,
-        mediaId: "https://www.henrikkarlsson.xyz/p/looking-for-alice",
-        label: "Looking for Alice",
-      },
-    ],
-  },
-  {
-    name: "reggie",
-    pfp: "/reggie.jpg",
-    link: "https://x.com/HipCityReg",
-    media: [
-      {
-        type: "spotify" as MediaType,
-        mediaId: "track/5s1mZcxqYhgmlvDxg4IGwt",
-        label: "Alma - Jonny Greenwood",
-      },
-      {
-        type: "link" as MediaType,
-        mediaId: "https://www.newyorker.com/magazine/2016/10/10/sam-altmans-manifest-destiny",
-        label: "Sam Altman's Manifest Destiny",
-      },
-      {
-        type: "youtube" as MediaType,
-        mediaId: "xhf5bHtf4jk",
-        label: "Rare Wine Tasting in the French Countryside",
-      },
-    ],
-  },
-  {
-    name: "mike",
-    pfp: "/mike.jpg",
-    link: "https://x.com/immike_wing",
-    media: [
-      {
-        type: "youtube" as MediaType,
-        mediaId: "JJxHRnPxmBI",
-        label: "Snoopy | Be My Valentine",
-      },
-      {
-        type: "spotify" as MediaType,
-        mediaId: "track/1Vk4yRsz0iBzDiZEoFMQyv",
-        label: "Mia & Sebastian's Theme - Justin Hurwitz",
-      },
-      {
-        type: "substack" as MediaType,
-        mediaId: "https://substack.com/home/post/p-187048525",
-        label: "To Be Loved Is to Be Changed",
-      },
-    ],
-  },
-  {
-    name: "anna",
-    pfp: "/anna.JPG",
-    link: "https://x.com/hard_boiledbabe",
-    media: [
-      {
-        type: "letterboxd" as MediaType,
-        mediaId: "https://letterboxd.com/film/wild-at-heart/",
-        label: "Wild at Heart",
-      },
-      {
-        type: "substack" as MediaType,
-        mediaId: "https://chiasm.substack.com/p/so-much-longing-in-so-little-space",
-        label: "So Much Longing in So Little Space",
-      },
-      {
-        type: "youtube" as MediaType,
-        mediaId: "mHQmnumnNgo",
-        label: "Triadisches Ballett von Oskar Schlemmer - Bauhaus (Best Quality)",
-      },
-      {
-        type: "youtube" as MediaType,
-        mediaId: "nLCY5Wl6ZMA",
-        label: "Bajka [A Fairy Tale] - Poland, 1968",
-      },
-      {
-        type: "spotify" as MediaType,
-        mediaId: "playlist/3vDFi3Ggjv9xoLLbbSWvQR",
-        label: "i have just now come from a party where i was its life and soul. everyon laughed and admired me",
-      },
-      {
-        type: "youtube" as MediaType,
-        mediaId: "npol_Y-expQ",
-        label: "Angel (Joseph Cornell, 1957)",
-      },
-      {
-        type: "spotify" as MediaType,
-        mediaId: "track/1APu9lSrXWUarvP61myILk",
-        label: "blue valentines by tom waits",
-      },
-    ],
-  },
-  {
-    name: "liz",
-    pfp: "/liz.png",
-    link: "https://www.instagram.com/lizmontesano/",
-    media: [
-      {
-        type: "link" as MediaType,
-        mediaId: "https://unewsonline.com/2024/10/the-history-and-legacy-of-one-direction/",
-        label: "The history and legacy of One Direction",
-      },
-      {
-        type: "link" as MediaType,
-        mediaId: "https://onedirection.tumblr.com/",
-        label: "One Direction on Tumblr",
-      },
-      {
-        type: "link" as MediaType,
-        mediaId: "https://www.bbc.com/news/entertainment-arts-53470098",
-        label: "In pictures: 10 years of One Direction",
-      },
-      {
-        type: "youtube" as MediaType,
-        mediaId: "syFZfO_wfMQ",
-        label: "One Direction - Night Changes",
-      },
-      {
-        type: "youtube" as MediaType,
-        mediaId: "QJO3ROT-A4E",
-        label: "One Direction - What Makes You Beautiful",
-      },
-    ],
-  },
-  {
-    name: "lelix",
-    pfp: "/lelix.jpg",
-    link: "https://www.instagram.com/lelix.jet/",
-    media: [
-      {
-        type: "youtube" as MediaType,
-        mediaId: "sAQHr-pnrQo",
-        label: "Shrek's Best Scenes",
-      },
-      {
-        type: "spotify" as MediaType,
-        mediaId: "track/13toFl1UwJPsRxDiD9jgtn",
-        label: "As - Stevie Wonder",
-      },
-      {
-        type: "link" as MediaType,
-        mediaId: "https://www.flickr.com/photos/henrylizardlover/3279951706/",
-        label: "Flickr Photo",
-      },
-      {
-        type: "letterboxd" as MediaType,
-        mediaId: "https://letterboxd.com/film/interstellar/",
-        label: "Interstellar (2014)",
-      },
-    ],
-  },
-  {
-    name: "ceci",
-    pfp: "/ceci.jpg",
-    link: "https://www.instagram.com/ceciliaazcarate/",
-    media: [
-      {
-        type: "link" as MediaType,
-        mediaId: "https://ceciliaazcarate.com/",
-        label: "Cecilia Azcarate",
-      },
-      {
-        type: "youtube" as MediaType,
-        mediaId: "nFWgiZxnz7o",
-        label: "Koudlam - See You All",
-      },
-      {
-        type: "link" as MediaType,
-        mediaId: "https://bitcoin.org/bitcoin.pdf",
-        label: "Bitcoin Whitepaper",
-      },
-      {
-        type: "youtube" as MediaType,
-        mediaId: "MoXrMOsnRVo",
-        label: "Tous Les Matins du Monde - Improvisation sur les Folies",
-      },
-      {
-        type: "link" as MediaType,
-        mediaId: "https://artsandculture.google.com/asset/EQFVNZZUaQNQQA",
-        label: "Stanley Kubrick - Barry Lyndon Portrait",
-      },
-      {
-        type: "link" as MediaType,
-        mediaId: "https://artsandculture.google.com/asset/the-annunciation-jan-van-eyck/xwFVdn0XxLmf9Q",
-        label: "The Annunciation - Jan van Eyck",
-      },
-      {
-        type: "youtube" as MediaType,
-        mediaId: "s5MUxuY4Hbw",
-        label: "The shooting paintings of Niki de Saint Phalle",
-      },
-    ],
-  },
-];
 
 function getBouquetTitle(fromName: string, toName: string) {
   const from = fromName.trim();
@@ -466,6 +185,117 @@ async function saveBouquetToAppdrop({
   return { savedOutput, shareUrl };
 }
 
+const DEFAULT_NOTE = "Happy Valentine's Day!\nI love you like the internet!";
+
+const FLOWER_OPTIONS = ["flowers", "flowers2", "5", "1", "2", "3", "4", "6", "7"] as const;
+type FlowerOption = (typeof FLOWER_OPTIONS)[number];
+// Cut-out flowers that sit at the bottom of the canvas instead of filling it
+const TALL_FLOWERS: readonly FlowerOption[] = ["1", "2", "3", "4", "6", "7"];
+
+const BG_PRESETS = [
+  { color: "#F77196", title: "Pink background" },
+  { color: "#C2021B", title: "Red background" },
+];
+
+const FOCUSABLE =
+  'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])';
+
+// Sidebar tiles for curated media, by type
+const MEDIA_ICONS: Partial<Record<MediaType, { bg: string; icon: ReactNode }>> = {
+  youtube: {
+    bg: "bg-[#FF0000]",
+    icon: <YouTubeIcon className="w-5 h-5 text-white" />,
+  },
+  spotify: {
+    bg: "bg-[#1DB954]",
+    icon: <SpotifyIcon className="w-5 h-5 text-white" />,
+  },
+  substack: {
+    bg: "bg-[#FF6719]",
+    icon: <SubstackIcon className="w-5 h-5 text-white" />,
+  },
+  letterboxd: {
+    bg: "bg-[#00e054]",
+    icon: <LetterboxdIcon className="w-5 h-5 text-[#14181c]" />,
+  },
+  link: {
+    bg: "bg-gray-500",
+    icon: <LinkIcon className="w-5 h-5 text-white" />,
+  },
+};
+
+function MediaTile({ type }: { type: MediaType }) {
+  const tile = MEDIA_ICONS[type];
+  if (!tile) return null;
+  return (
+    <div
+      className={`w-10 h-10 ${tile.bg} rounded flex items-center justify-center flex-shrink-0`}
+    >
+      {tile.icon}
+    </div>
+  );
+}
+
+// Ids only have to be unique within a bouquet. crypto.randomUUID exists only
+// on secure origins (https or localhost), so it is missing when the dev
+// server is opened from a phone over the local network.
+function createId() {
+  return (
+    crypto.randomUUID?.() ??
+    `${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}`
+  );
+}
+
+// Item positions are percentages of the canvas; keep centers inside it
+const clampPercent = (value: number) => Math.max(5, Math.min(95, value));
+
+function parseUrl(url: string): { type: MediaType; id: string } | null {
+  const igMatch = url.match(/instagram\.com\/(?:reel|p)\/([A-Za-z0-9_-]+)/);
+  if (igMatch) return { type: "instagram", id: igMatch[1] };
+
+  const ytMatch = url.match(
+    /(?:youtube\.com\/(?:watch\?v=|shorts\/)|youtu\.be\/)([A-Za-z0-9_-]+)/,
+  );
+  if (ytMatch) return { type: "youtube", id: ytMatch[1] };
+
+  const spotifyMatch = url.match(
+    /spotify\.com\/(track|album|playlist)\/([A-Za-z0-9]+)/,
+  );
+  if (spotifyMatch)
+    return { type: "spotify", id: `${spotifyMatch[1]}/${spotifyMatch[2]}` };
+
+  if (
+    /(?:([a-zA-Z0-9-]+)\.substack\.com|www\.([a-zA-Z0-9-]+)\.[a-z]+)\/p\/([a-zA-Z0-9-]+)/.test(
+      url,
+    )
+  )
+    return { type: "substack", id: url };
+
+  if (
+    /letterboxd\.com\/(?:film\/([a-zA-Z0-9-]+)|([a-zA-Z0-9_]+)\/film\/([a-zA-Z0-9-]+))/.test(
+      url,
+    )
+  )
+    return { type: "letterboxd", id: url };
+
+  const twitterMatch = url.match(
+    /(?:twitter\.com|x\.com)\/([a-zA-Z0-9_]+)\/status\/(\d+)/,
+  );
+  if (twitterMatch) return { type: "twitter", id: twitterMatch[2] };
+
+  // Fallback: any valid URL becomes a generic link
+  try {
+    const parsed = new URL(url);
+    if (parsed.protocol === "http:" || parsed.protocol === "https:") {
+      return { type: "link", id: url };
+    }
+  } catch {
+    // Invalid URL
+  }
+
+  return null;
+}
+
 function Home() {
   const searchParams = useSearchParams();
 
@@ -476,10 +306,8 @@ function Home() {
   const [showModal, setShowModal] = useState<MediaItem | null>(null);
   const [dragging, setDragging] = useState<string | null>(null);
   const [hasDragged, setHasDragged] = useState(false);
-  const [rotating, setRotating] = useState<string | null>(null);
   const [scaling, setScaling] = useState<string | null>(null);
   const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
-  const [rotateStart, setRotateStart] = useState({ angle: 0, itemRotation: 0 });
   const [scaleStart, setScaleStart] = useState({ distance: 0, itemScale: 1 });
 
   // Supabase sharing state
@@ -488,21 +316,12 @@ function Home() {
   const [isSaving, setIsSaving] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [isViewingShared, setIsViewingShared] = useState(false);
-  const FLOWER_OPTIONS = ["flowers", "flowers2", "5", "1", "2", "3", "4", "6", "7"] as const;
-  type FlowerOption = typeof FLOWER_OPTIONS[number];
-  const [flowerImage, setFlowerImage] = useState<FlowerOption>(
-    "flowers",
-  );
+  const [flowerImage, setFlowerImage] = useState<FlowerOption>("flowers");
   const [bgColor, setBgColor] = useState("#ffffff");
   const [showNoteModal, setShowNoteModal] = useState(false);
-  const [note, setNote] = useState(
-    "Happy Valentine's Day!\nI love you like the internet!",
-  );
+  const [note, setNote] = useState(DEFAULT_NOTE);
   const [fromName, setFromName] = useState("");
   const [toName, setToName] = useState("");
-  const [savedNote, setSavedNote] = useState<string | null>(null);
-  const [savedFromName, setSavedFromName] = useState<string | null>(null);
-  const [savedToName, setSavedToName] = useState<string | null>(null);
   const [isGallery, setIsGallery] = useState(false);
   const [canvasScale, setCanvasScale] = useState(1);
   const [toast, setToast] = useState<{
@@ -511,7 +330,6 @@ function Home() {
   } | null>(null);
 
   const canvasRef = useRef<HTMLDivElement>(null);
-  const modalRef = useRef<HTMLDivElement>(null);
   const copyResetTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(
     null,
   );
@@ -552,38 +370,29 @@ function Home() {
   // Load bouquet from URL if slug parameter exists
   useEffect(() => {
     const slug = searchParams.get("b");
+    if (!slug) return;
     const isEditMode = searchParams.get("edit") === "1";
-    if (slug) {
-      setIsLoading(true);
-      loadBouquet(slug).then((result) => {
-        if ("error" in result) {
-          showToast("Could not load bouquet: " + result.error, "error");
-          setIsLoading(false);
-          return;
-        }
-        setItems(result.items);
-        setSavedNote(result.note || null);
-        setSavedFromName(result.from_name || null);
-        setSavedToName(result.to_name || null);
-        setBgColor(result.bg_color || "#ffffff");
-        // Also set editable note/names if in edit mode
-        if (isEditMode) {
-          setNote(result.note || "Happy Valentine's Day!\nI love you like the internet!");
-          setFromName(result.from_name || "");
-          setToName(result.to_name || "");
-        }
-        // Set the flower image based on saved image_url
-        const match = FLOWER_OPTIONS.find(opt => result.image_url === `/${opt}.png`);
-        setFlowerImage(match || "flowers");
-        // Only set as viewing shared if not in edit mode
-        if (isEditMode) {
-          setIsViewingShared(false);
-        } else {
-          setIsViewingShared(true);
-        }
-        setIsLoading(false);
-      });
-    }
+
+    setIsLoading(true);
+    loadBouquet(slug).then((result) => {
+      setIsLoading(false);
+      if ("error" in result) {
+        showToast("Could not load bouquet: " + result.error, "error");
+        return;
+      }
+      setItems(result.items);
+      setBgColor(result.bg_color || "#ffffff");
+      // Editing starts from the default note; the shared view shows only what
+      // was saved
+      setNote(result.note || (isEditMode ? DEFAULT_NOTE : ""));
+      setFromName(result.from_name || "");
+      setToName(result.to_name || "");
+      setFlowerImage(
+        FLOWER_OPTIONS.find((opt) => result.image_url === `/${opt}.png`) ||
+          "flowers",
+      );
+      setIsViewingShared(!isEditMode);
+    });
   }, [searchParams]);
 
   // Handle saving bouquet to Supabase
@@ -591,18 +400,15 @@ function Home() {
     if (isSaving || items.length === 0) return;
     setIsSaving(true);
 
-    const bouquetData = {
+    const result = await saveBouquet({
       image_url: `/${flowerImage}.png`,
-      paths: [],
-      items: items,
+      items,
       note: note.trim() ? note : null,
       bg_color: bgColor,
       from_name: fromName.trim() ? fromName : null,
       to_name: toName.trim() ? toName : null,
       is_gallery: isGallery,
-    };
-
-    const result = await saveBouquet(bouquetData);
+    });
 
     if ("error" in result) {
       showToast("Could not save bouquet: " + result.error, "error");
@@ -642,81 +448,52 @@ function Home() {
     }
   };
 
-  // URL parsing
-  const parseUrl = (url: string): { type: MediaType; id: string } | null => {
-    const igMatch = url.match(/instagram\.com\/(?:reel|p)\/([A-Za-z0-9_-]+)/);
-    if (igMatch) return { type: "instagram", id: igMatch[1] };
-
-    const ytMatch = url.match(
-      /(?:youtube\.com\/(?:watch\?v=|shorts\/)|youtu\.be\/)([A-Za-z0-9_-]+)/,
-    );
-    if (ytMatch) return { type: "youtube", id: ytMatch[1] };
-
-    const spotifyMatch = url.match(
-      /spotify\.com\/(track|album|playlist)\/([A-Za-z0-9]+)/,
-    );
-    if (spotifyMatch)
-      return { type: "spotify", id: `${spotifyMatch[1]}/${spotifyMatch[2]}` };
-
-    const substackMatch = url.match(
-      /(?:([a-zA-Z0-9-]+)\.substack\.com|www\.([a-zA-Z0-9-]+)\.[a-z]+)\/p\/([a-zA-Z0-9-]+)/,
-    );
-    if (substackMatch) return { type: "substack", id: url };
-
-    const letterboxdMatch = url.match(
-      /letterboxd\.com\/(?:film\/([a-zA-Z0-9-]+)|([a-zA-Z0-9_]+)\/film\/([a-zA-Z0-9-]+))/,
-    );
-    if (letterboxdMatch) return { type: "letterboxd", id: url };
-
-    const twitterMatch = url.match(
-      /(?:twitter\.com|x\.com)\/([a-zA-Z0-9_]+)\/status\/(\d+)/,
-    );
-    if (twitterMatch) return { type: "twitter", id: twitterMatch[2] };
-
-    // Fallback: any valid URL becomes a generic link
-    try {
-      const parsed = new URL(url);
-      if (parsed.protocol === "http:" || parsed.protocol === "https:") {
-        return { type: "link", id: url };
-      }
-    } catch {
-      // Invalid URL
-    }
-
-    return null;
-  };
-
-  const addItem = (type: MediaType, mediaId: string) => {
+  // Add an item at the given canvas position, or somewhere near the middle
+  const addItem = (
+    type: MediaType,
+    mediaId: string,
+    position?: { x: number; y: number },
+  ) => {
     const newItem: MediaItem = {
-      id: crypto.randomUUID(),
+      id: createId(),
       type,
       mediaId,
-      x: 30 + Math.random() * 40,
-      y: 30 + Math.random() * 40,
+      x: position ? clampPercent(position.x) : 30 + Math.random() * 40,
+      y: position ? clampPercent(position.y) : 30 + Math.random() * 40,
       rotation: 0,
       scale: 0.8,
     };
     setItems((prev) => [...prev, newItem]);
   };
 
-  const handlePaste = async () => {
+  const updateItem = (id: string, patch: Partial<MediaItem>) => {
+    setItems((prev) =>
+      prev.map((item) => (item.id === id ? { ...item, ...patch } : item)),
+    );
+  };
+
+  const deleteItem = (id: string) => {
+    setItems((prev) => prev.filter((item) => item.id !== id));
+  };
+
+  // Adds the link on the clipboard, if it holds one
+  const addFromClipboard = async () => {
     try {
-      const text = await navigator.clipboard.readText();
-      const parsed = parseUrl(text);
-      if (parsed) {
-        addItem(parsed.type, parsed.id);
-      } else {
-        setShowInput(true);
-      }
+      const parsed = parseUrl(await navigator.clipboard.readText());
+      if (!parsed) return false;
+      addItem(parsed.type, parsed.id);
+      return true;
     } catch {
-      setShowInput(true);
+      // Clipboard access denied
+      return false;
     }
   };
 
-  const handleInputSubmit = (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    const formData = new FormData(e.currentTarget);
-    const url = formData.get("url") as string;
+  const handlePaste = async () => {
+    if (!(await addFromClipboard())) setShowInput(true);
+  };
+
+  const handleUrlSubmit = (url: string) => {
     const parsed = parseUrl(url);
     if (parsed) {
       addItem(parsed.type, parsed.id);
@@ -729,106 +506,71 @@ function Home() {
     }
   };
 
-  const handleMouseDown = useCallback(
-    (e: React.MouseEvent, itemId: string) => {
-      if (canvasRef.current) {
-        const item = items.find((i) => i.id === itemId);
-        if (item) {
-          const rect = canvasRef.current.getBoundingClientRect();
-          const itemX = (item.x / 100) * rect.width;
-          const itemY = (item.y / 100) * rect.height;
-          setDragOffset({
-            x: e.clientX - rect.left - itemX,
-            y: e.clientY - rect.top - itemY,
-          });
-          setDragging(itemId);
-          setHasDragged(false);
-        }
-      }
-    },
-    [items],
-  );
+  // Pointer position relative to an item's center, in pixels
+  const offsetFromItem = (item: MediaItem, clientX: number, clientY: number) => {
+    const rect = canvasRef.current?.getBoundingClientRect();
+    if (!rect) return null;
+    return {
+      x: clientX - rect.left - (item.x / 100) * rect.width,
+      y: clientY - rect.top - (item.y / 100) * rect.height,
+    };
+  };
 
-  const handleMouseMove = useCallback(
-    (e: React.MouseEvent) => {
-      if (dragging && canvasRef.current) {
-        setHasDragged(true);
-        const rect = canvasRef.current.getBoundingClientRect();
-        const x = ((e.clientX - rect.left - dragOffset.x) / rect.width) * 100;
-        const y = ((e.clientY - rect.top - dragOffset.y) / rect.height) * 100;
+  // Dragging and scaling, shared by the mouse and touch handlers
+  const startDrag = (item: MediaItem, clientX: number, clientY: number) => {
+    const offset = offsetFromItem(item, clientX, clientY);
+    if (!offset) return;
+    setDragOffset(offset);
+    setDragging(item.id);
+    setHasDragged(false);
+  };
 
-        setItems(
-          items.map((item) =>
-            item.id === dragging
-              ? {
-                  ...item,
-                  x: Math.max(5, Math.min(95, x)),
-                  y: Math.max(5, Math.min(95, y)),
-                }
-              : item,
-          ),
-        );
-      }
+  const startScale = (item: MediaItem, clientX: number, clientY: number) => {
+    const offset = offsetFromItem(item, clientX, clientY);
+    if (offset) {
+      setScaleStart({
+        distance: Math.hypot(offset.x, offset.y),
+        itemScale: item.scale,
+      });
+    }
+    setScaling(item.id);
+  };
 
-      if (rotating && canvasRef.current) {
-        const item = items.find((i) => i.id === rotating);
-        if (item) {
-          const rect = canvasRef.current.getBoundingClientRect();
-          const centerX = rect.left + (item.x / 100) * rect.width;
-          const centerY = rect.top + (item.y / 100) * rect.height;
-          const currentAngle =
-            Math.atan2(e.clientX - centerX, centerY - e.clientY) *
-            (180 / Math.PI);
-          const angleDelta = currentAngle - rotateStart.angle;
-          const newRotation = rotateStart.itemRotation + angleDelta;
+  const handlePointerMove = (clientX: number, clientY: number) => {
+    const rect = canvasRef.current?.getBoundingClientRect();
+    if (!rect) return;
 
-          setItems(
-            items.map((i) =>
-              i.id === rotating ? { ...i, rotation: newRotation } : i,
-            ),
-          );
-        }
-      }
+    if (dragging) {
+      setHasDragged(true);
+      updateItem(dragging, {
+        x: clampPercent(((clientX - rect.left - dragOffset.x) / rect.width) * 100),
+        y: clampPercent(((clientY - rect.top - dragOffset.y) / rect.height) * 100),
+      });
+    }
 
-      if (scaling && canvasRef.current) {
-        const item = items.find((i) => i.id === scaling);
-        if (item) {
-          const rect = canvasRef.current.getBoundingClientRect();
-          const centerX = rect.left + (item.x / 100) * rect.width;
-          const centerY = rect.top + (item.y / 100) * rect.height;
-          const currentDistance = Math.sqrt(
-            Math.pow(e.clientX - centerX, 2) + Math.pow(e.clientY - centerY, 2),
-          );
-          const scaleFactor = currentDistance / scaleStart.distance;
-          const newScale = Math.max(
-            0.3,
-            Math.min(3, scaleStart.itemScale * scaleFactor),
-          );
+    const scaledItem = scaling && items.find((item) => item.id === scaling);
+    const offset = scaledItem && offsetFromItem(scaledItem, clientX, clientY);
+    if (offset) {
+      const scaleFactor = Math.hypot(offset.x, offset.y) / scaleStart.distance;
+      updateItem(scaledItem.id, {
+        scale: Math.max(0.3, Math.min(3, scaleStart.itemScale * scaleFactor)),
+      });
+    }
+  };
 
-          setItems(
-            items.map((i) =>
-              i.id === scaling ? { ...i, scale: newScale } : i,
-            ),
-          );
-        }
-      }
-    },
-    [dragging, rotating, scaling, dragOffset, rotateStart, scaleStart, items],
-  );
-
-  const handleMouseUp = useCallback(() => {
+  const stopInteraction = () => {
     setDragging(null);
-    setRotating(null);
     setScaling(null);
-  }, []);
+  };
 
   // Calculate canvas scale based on actual rendered size vs reference size (900px)
-  // Using ResizeObserver for reliable size tracking
+  // Using ResizeObserver for reliable size tracking. A floor keeps embeds
+  // tappable on phones, where the canvas is well under half the reference width.
   useEffect(() => {
     const updateCanvasScale = () => {
       if (canvasRef.current) {
         const width = canvasRef.current.offsetWidth;
-        setCanvasScale(width / 900);
+        setCanvasScale(Math.max(0.5, width / 900));
       }
     };
 
@@ -843,93 +585,30 @@ function Home() {
     return () => observer.disconnect();
   }, []);
 
-  // Touch event handlers for mobile
-  const handleTouchStart = useCallback(
-    (e: React.TouchEvent, itemId: string) => {
-      if (canvasRef.current && e.touches.length === 1) {
-        const touch = e.touches[0];
-        const item = items.find((i) => i.id === itemId);
-        if (item) {
-          const rect = canvasRef.current.getBoundingClientRect();
-          const itemX = (item.x / 100) * rect.width;
-          const itemY = (item.y / 100) * rect.height;
-          setDragOffset({
-            x: touch.clientX - rect.left - itemX,
-            y: touch.clientY - rect.top - itemY,
-          });
-          setDragging(itemId);
-          setHasDragged(false);
-        }
-      }
-    },
-    [items],
-  );
-
-  const handleTouchMove = useCallback(
-    (e: React.TouchEvent) => {
-      if (dragging && canvasRef.current && e.touches.length === 1) {
-        const touch = e.touches[0];
-        setHasDragged(true);
-        const rect = canvasRef.current.getBoundingClientRect();
-        const x =
-          ((touch.clientX - rect.left - dragOffset.x) / rect.width) * 100;
-        const y =
-          ((touch.clientY - rect.top - dragOffset.y) / rect.height) * 100;
-
-        setItems(
-          items.map((item) =>
-            item.id === dragging
-              ? {
-                  ...item,
-                  x: Math.max(5, Math.min(95, x)),
-                  y: Math.max(5, Math.min(95, y)),
-                }
-              : item,
-          ),
-        );
-      }
-    },
-    [dragging, dragOffset, items],
-  );
-
-  const handleTouchEnd = useCallback(() => {
-    setDragging(null);
-    setRotating(null);
-    setScaling(null);
-  }, []);
-
   // Listen for Cmd+V / Ctrl+V to paste link directly and ESC to close dialogs
-  useEffect(() => {
-    const handleKeyDown = async (e: KeyboardEvent) => {
-      // ESC to close dialogs
-      if (e.key === "Escape") {
-        if (showModal) setShowModal(null);
-        if (showInput) setShowInput(false);
-        if (showNoteModal) setShowNoteModal(false);
-        return;
-      }
+  const handleKeyDown = useEffectEvent(async (e: KeyboardEvent) => {
+    if (e.key === "Escape") {
+      setShowModal(null);
+      setShowInput(false);
+      setShowNoteModal(false);
+      return;
+    }
 
-      if (
-        (e.metaKey || e.ctrlKey) &&
-        e.key === "v" &&
-        !isViewingShared &&
-        !showInput
-      ) {
-        try {
-          const text = await navigator.clipboard.readText();
-          const parsed = parseUrl(text);
-          if (parsed) {
-            e.preventDefault();
-            addItem(parsed.type, parsed.id);
-          }
-        } catch {
-          // Clipboard access denied, ignore
-        }
-      }
-    };
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [isViewingShared, showInput, showModal, showNoteModal]);
+    if (
+      (e.metaKey || e.ctrlKey) &&
+      e.key === "v" &&
+      !isViewingShared &&
+      !showInput
+    ) {
+      if (await addFromClipboard()) e.preventDefault();
+    }
+  });
+
+  useEffect(() => {
+    const listener = (e: KeyboardEvent) => handleKeyDown(e);
+    window.addEventListener("keydown", listener);
+    return () => window.removeEventListener("keydown", listener);
+  }, []);
 
   // Focus trap for modals
   useEffect(() => {
@@ -942,9 +621,7 @@ function Home() {
       const modal = document.querySelector('[role="dialog"]');
       if (!modal) return;
 
-      const focusable = modal.querySelectorAll<HTMLElement>(
-        'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])',
-      );
+      const focusable = modal.querySelectorAll<HTMLElement>(FOCUSABLE);
       const first = focusable[0];
       const last = focusable[focusable.length - 1];
 
@@ -959,111 +636,56 @@ function Home() {
 
     // Focus first focusable element in modal
     setTimeout(() => {
-      const modal = document.querySelector('[role="dialog"]');
-      const firstFocusable = modal?.querySelector<HTMLElement>(
-        'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])',
-      );
-      firstFocusable?.focus();
+      document
+        .querySelector('[role="dialog"]')
+        ?.querySelector<HTMLElement>(FOCUSABLE)
+        ?.focus();
     }, 100);
 
     window.addEventListener("keydown", handleTab);
     return () => window.removeEventListener("keydown", handleTab);
   }, [showModal, showInput, showNoteModal]);
 
-  const deleteItem = (id: string) => {
-    setItems(items.filter((i) => i.id !== id));
-  };
-
-  // Arrange items in a nice pattern around the bouquet
-  const arrangeItems = () => {
-    if (items.length === 0) return;
-
-    const positions = [
-      { x: 15, y: 25 },
-      { x: 85, y: 25 },
-      { x: 10, y: 55 },
-      { x: 90, y: 55 },
-      { x: 20, y: 80 },
-      { x: 80, y: 80 },
-      { x: 50, y: 15 },
-      { x: 50, y: 85 },
-    ];
-
-    const arranged = items.map((item, index) => {
-      const pos = positions[index % positions.length];
-      return {
-        ...item,
-        x: pos.x,
-        y: pos.y,
-        rotation: 0,
-        scale: 0.7,
-      };
-    });
-
-    setItems(arranged);
-  };
-
-  const createLinkClickHandler = (url: string) =>
-    (e: React.MouseEvent) => {
-      e.stopPropagation();
-      if (!hasDragged) {
-        window.open(url, "_blank", "noopener,noreferrer");
+  const renderEmbed = (item: MediaItem, isModal: boolean = false) => (
+    <MediaEmbed
+      type={item.type}
+      mediaId={item.mediaId}
+      isModal={isModal}
+      // On the canvas, thumbnail embeds open their link unless it was a drag
+      onLinkClick={
+        isModal
+          ? undefined
+          : (e) => {
+              e.stopPropagation();
+              if (!hasDragged) {
+                window.open(item.mediaId, "_blank", "noopener,noreferrer");
+              }
+            }
       }
-    };
-
-  const renderEmbed = (item: MediaItem, isModal: boolean = false) => {
-    switch (item.type) {
-      case "instagram":
-        return <InstagramEmbed mediaId={item.mediaId} isModal={isModal} />;
-      case "youtube":
-        return <YouTubeEmbed mediaId={item.mediaId} isModal={isModal} />;
-      case "spotify":
-        return <SpotifyEmbed mediaId={item.mediaId} isModal={isModal} />;
-      case "twitter":
-        return <TwitterEmbed mediaId={item.mediaId} isModal={isModal} />;
-      case "substack":
-        return (
-          <SubstackEmbed
-            url={item.mediaId}
-            isModal={isModal}
-            onLinkClick={isModal ? undefined : createLinkClickHandler(item.mediaId)}
-          />
-        );
-      case "letterboxd":
-        return (
-          <LetterboxdEmbed
-            url={item.mediaId}
-            isModal={isModal}
-            onLinkClick={isModal ? undefined : createLinkClickHandler(item.mediaId)}
-          />
-        );
-      case "link":
-        return (
-          <LinkEmbed
-            url={item.mediaId}
-            isModal={isModal}
-            onLinkClick={isModal ? undefined : createLinkClickHandler(item.mediaId)}
-          />
-        );
-      default:
-        return null;
-    }
-  };
+    />
+  );
 
   // Loading state
   if (isLoading) {
     return <LoadingFallback />;
   }
 
+  const isTallFlower = TALL_FLOWERS.includes(flowerImage);
+  const curator = CURATED_BUCKETS[selectedBucket];
+
   return (
     <div
-      className="min-h-screen relative overflow-hidden"
+      className="h-dvh min-h-dvh relative overflow-hidden"
       style={{ backgroundColor: bgColor }}
-      onMouseMove={handleMouseMove}
-      onMouseUp={handleMouseUp}
-      onMouseLeave={handleMouseUp}
-      onTouchMove={handleTouchMove}
-      onTouchEnd={handleTouchEnd}
+      onMouseMove={(e) => handlePointerMove(e.clientX, e.clientY)}
+      onMouseUp={stopInteraction}
+      onMouseLeave={stopInteraction}
+      onTouchMove={(e) => {
+        if (e.touches.length === 1) {
+          handlePointerMove(e.touches[0].clientX, e.touches[0].clientY);
+        }
+      }}
+      onTouchEnd={stopInteraction}
     >
       {/* Full page background for 5.png */}
       {flowerImage === "5" && (
@@ -1079,13 +701,12 @@ function Home() {
         </div>
       )}
       {/* Canvas area - centered, always maintains 3:4 aspect ratio */}
-      <div className="absolute inset-0 flex items-center justify-center overflow-hidden p-4">
+      <div className="absolute inset-0 flex items-center justify-center overflow-hidden p-2 sm:p-4">
         <div
           ref={canvasRef}
-          className="relative w-full max-w-[900px]"
+          className="relative w-full max-w-[900px] max-h-[calc(100dvh-1rem)] sm:max-h-[calc(100dvh-2rem)]"
           style={{
             aspectRatio: "3/4",
-            maxHeight: "calc(100vh - 2rem)",
           }}
           onDragOver={(e) => e.preventDefault()}
           onDrop={(e) => {
@@ -1094,48 +715,28 @@ function Home() {
             if (data && canvasRef.current) {
               const { type, mediaId } = JSON.parse(data);
               const rect = canvasRef.current.getBoundingClientRect();
-              const x = ((e.clientX - rect.left) / rect.width) * 100;
-              const y = ((e.clientY - rect.top) / rect.height) * 100;
-              const newItem: MediaItem = {
-                id: crypto.randomUUID(),
-                type,
-                mediaId,
-                x: Math.max(5, Math.min(95, x)),
-                y: Math.max(5, Math.min(95, y)),
-                rotation: 0,
-                scale: 0.8,
-              };
-              setItems((prev) => [...prev, newItem]);
+              addItem(type, mediaId, {
+                x: ((e.clientX - rect.left) / rect.width) * 100,
+                y: ((e.clientY - rect.top) / rect.height) * 100,
+              });
             }
           }}
         >
           {/* Flowers background */}
           {flowerImage !== "5" && (
-          <div className={`absolute inset-x-[8%] md:inset-x-0 ${["1","2","3","4","6","7"].includes(flowerImage) ? "-bottom-[2%] -top-[50%]" : "-bottom-[40%] -top-[10%]"}`}>
+          <div className={`absolute inset-x-[8%] md:inset-x-0 ${isTallFlower ? "-bottom-[2%] -top-[50%]" : "-bottom-[40%] -top-[10%]"}`}>
             <Image
               src={`/${flowerImage}.png`}
               alt="Flower bouquet"
               fill
-              className={`${["1","2","3","4","6","7"].includes(flowerImage) ? "object-contain object-bottom" : "object-contain"} select-none`}
+              className={`${isTallFlower ? "object-contain object-bottom" : "object-contain"} select-none`}
               draggable={false}
               priority
             />
             {/* Clickable area on flower to paste link or open drawer */}
             {!isViewingShared && (
               <button
-                onClick={async () => {
-                  try {
-                    const text = await navigator.clipboard.readText();
-                    const parsed = parseUrl(text);
-                    if (parsed) {
-                      addItem(parsed.type, parsed.id);
-                    } else {
-                      setShowInput(true);
-                    }
-                  } catch {
-                    setShowInput(true);
-                  }
-                }}
+                onClick={handlePaste}
                 className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-1/3 h-1/3 cursor-pointer z-10"
                 aria-label="Add link"
               />
@@ -1146,7 +747,7 @@ function Home() {
           {/* Empty state prompt */}
           {!isViewingShared && items.length === 0 && (
             <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-10">
-              <div className="bg-white/80 backdrop-blur-sm rounded-2xl px-8 py-6 text-left max-w-sm shadow-lg">
+              <div className="bg-white/80 backdrop-blur-sm rounded-2xl px-5 py-4 sm:px-8 sm:py-6 mx-4 text-left max-w-sm shadow-lg">
                 <p className="text-black/80 text-fluid-lg font-medium mb-3">
                   Start curating your bouquet
                 </p>
@@ -1186,11 +787,11 @@ function Home() {
               onMouseDown={(e) => {
                 if (isViewingShared) return;
                 e.preventDefault();
-                handleMouseDown(e, item.id);
+                startDrag(item, e.clientX, e.clientY);
               }}
               onTouchStart={(e) => {
-                if (isViewingShared) return;
-                handleTouchStart(e, item.id);
+                if (isViewingShared || e.touches.length !== 1) return;
+                startDrag(item, e.touches[0].clientX, e.touches[0].clientY);
               }}
             >
               <div className="relative group">
@@ -1211,42 +812,14 @@ function Home() {
                       className="absolute -top-2 -right-2 w-8 h-8 rounded-full bg-[#E6E6E6]/50 backdrop-blur-md border-2 border-[#EAEAEA] hover:bg-white/90 text-black flex items-center justify-center shadow-lg md:opacity-0 md:group-hover:opacity-100 transition-opacity focus:outline-none focus:ring-2 focus:ring-black/30"
                       title="Remove"
                     >
-                      <svg
-                        className="w-4 h-4"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M6 18L18 6M6 6l12 12"
-                        />
-                      </svg>
+                      <X aria-hidden="true" className="w-4 h-4" />
                     </button>
                     {/* Scale handle - hidden on mobile */}
                     <div
                       onMouseDown={(e) => {
                         e.stopPropagation();
                         e.preventDefault();
-                        if (canvasRef.current) {
-                          const rect =
-                            canvasRef.current.getBoundingClientRect();
-                          const centerX =
-                            rect.left + (item.x / 100) * rect.width;
-                          const centerY =
-                            rect.top + (item.y / 100) * rect.height;
-                          const startDistance = Math.sqrt(
-                            Math.pow(e.clientX - centerX, 2) +
-                              Math.pow(e.clientY - centerY, 2),
-                          );
-                          setScaleStart({
-                            distance: startDistance,
-                            itemScale: item.scale,
-                          });
-                        }
-                        setScaling(item.id);
+                        startScale(item, e.clientX, e.clientY);
                       }}
                       className="absolute -bottom-2 -right-2 w-8 h-8 rounded-full bg-[#E6E6E6]/50 backdrop-blur-md border-2 border-[#EAEAEA] hover:bg-white/90 text-black flex items-center justify-center shadow-lg hidden md:flex md:opacity-0 md:group-hover:opacity-100 transition-opacity cursor-nwse-resize"
                       title="Scale"
@@ -1308,20 +881,18 @@ function Home() {
       </div>
 
       {/* Note display bottom right - only on sharing page */}
-      {isViewingShared && (savedNote || savedFromName || savedToName) && (
-        <div className="fixed bottom-4 right-4 md:bottom-6 md:right-6 z-40 max-w-xs md:max-w-sm">
+      {isViewingShared && (note || fromName || toName) && (
+        <div className="fixed bottom-4 right-4 md:bottom-6 md:right-6 z-40 max-w-[calc(100vw-2rem)] sm:max-w-xs md:max-w-sm">
           <div className="bg-[#E6E6E6]/50 backdrop-blur-md rounded-xl p-4">
-            {(savedFromName || savedToName) && (
+            {(fromName || toName) && (
               <div className="flex items-center gap-2 mb-3">
-                <span className="text-black text-sm font-normal">{savedFromName || "?"}</span>
+                <span className="text-black text-sm font-normal">{fromName || "?"}</span>
                 <span className="text-black/50 text-sm">+</span>
-                <span className="text-black text-sm font-normal">{savedToName || "?"}</span>
+                <span className="text-black text-sm font-normal">{toName || "?"}</span>
               </div>
             )}
-            {savedNote && (
-              <p className="text-black text-sm whitespace-pre-wrap">
-                {savedNote}
-              </p>
+            {note && (
+              <p className="text-black text-sm whitespace-pre-wrap">{note}</p>
             )}
           </div>
         </div>
@@ -1329,17 +900,26 @@ function Home() {
 
       {/* Left Sidebar with curated media */}
       {!isViewingShared && (
+        <>
+        {/* Mobile backdrop: tap outside to close the drawer */}
+        {sidebarOpen && (
+          <div
+            className="fixed inset-0 z-30 md:hidden"
+            onClick={() => setSidebarOpen(false)}
+            aria-hidden="true"
+          />
+        )}
         <div
-          className={`fixed left-0 top-1/2 -translate-y-1/2 z-30 transition-transform duration-300 ${sidebarOpen ? "translate-x-0" : "-translate-x-[280px]"}`}
+          className={`fixed left-0 top-1/2 -translate-y-1/2 z-30 w-[min(280px,85vw)] transition-transform duration-300 ${sidebarOpen ? "translate-x-0" : "-translate-x-full"}`}
         >
-          <div className="w-[280px] bg-[#E6E6E6]/50 backdrop-blur-md rounded-r-2xl py-4 flex flex-col relative">
+          <div className="w-full bg-[#E6E6E6]/50 backdrop-blur-md rounded-r-2xl py-4 flex flex-col relative">
             {/* Profile pictures rows */}
             <div className="px-4 pb-2">
-              {/* First row */}
-              <div className="flex justify-between mb-2">
-                {CURATED_BUCKETS.slice(0, 5).map((bucket, i) => (
+              {/* Five 40px avatars per row, spread across the full width */}
+              <div className="grid grid-cols-5 gap-x-[calc((100%-200px)/4)] gap-y-2">
+                {CURATED_BUCKETS.map((bucket, i) => (
                   <button
-                    key={i}
+                    key={bucket.name}
                     onClick={() => setSelectedBucket(i)}
                     className={`rounded-full transition-all ${selectedBucket === i ? "scale-110" : "opacity-60 hover:opacity-100"}`}
                   >
@@ -1353,30 +933,10 @@ function Home() {
                   </button>
                 ))}
               </div>
-              {/* Second row */}
-              {CURATED_BUCKETS.length > 5 && (
-                <div className="flex justify-start gap-[calc((100%-200px)/4)]">
-                  {CURATED_BUCKETS.slice(5).map((bucket, i) => (
-                    <button
-                      key={i + 5}
-                      onClick={() => setSelectedBucket(i + 5)}
-                      className={`rounded-full transition-all ${selectedBucket === i + 5 ? "scale-110" : "opacity-60 hover:opacity-100"}`}
-                    >
-                      <Image
-                        src={bucket.pfp}
-                        alt={bucket.name}
-                        width={40}
-                        height={40}
-                        className="w-10 h-10 rounded-full object-cover"
-                      />
-                    </button>
-                  ))}
-                </div>
-              )}
             </div>
             {/* Media items for selected bucket */}
-            <div className="px-4 pt-2 flex flex-col space-y-2 max-h-[460px] overflow-y-auto">
-              {CURATED_BUCKETS[selectedBucket].media.map((media, index) => (
+            <div className="px-4 pt-2 flex flex-col space-y-2 max-h-[min(460px,calc(100dvh-14rem))] overflow-y-auto overscroll-contain">
+              {curator.media.map((media, index) => (
                 <div
                   key={index}
                   draggable
@@ -1395,42 +955,7 @@ function Home() {
                   }}
                   className="w-full p-3 bg-white hover:bg-white/90 rounded-lg transition-colors text-left flex items-center gap-3 cursor-grab active:cursor-grabbing"
                 >
-                  {media.type === "youtube" && (
-                    <div className="w-10 h-10 bg-[#FF0000] rounded flex items-center justify-center flex-shrink-0">
-                      <svg className="w-5 h-5 text-white" fill="currentColor" viewBox="0 0 24 24">
-                        <path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z" />
-                      </svg>
-                    </div>
-                  )}
-                  {media.type === "spotify" && (
-                    <div className="w-10 h-10 bg-[#1DB954] rounded flex items-center justify-center flex-shrink-0">
-                      <svg className="w-5 h-5 text-white" fill="currentColor" viewBox="0 0 24 24">
-                        <path d="M12 0C5.4 0 0 5.4 0 12s5.4 12 12 12 12-5.4 12-12S18.66 0 12 0zm5.521 17.34c-.24.359-.66.48-1.021.24-2.82-1.74-6.36-2.101-10.561-1.141-.418.122-.779-.179-.899-.539-.12-.421.18-.78.54-.9 4.56-1.021 8.52-.6 11.64 1.32.42.18.479.659.301 1.02zm1.44-3.3c-.301.42-.841.6-1.262.3-3.239-1.98-8.159-2.58-11.939-1.38-.479.12-1.02-.12-1.14-.6-.12-.48.12-1.021.6-1.141C9.6 9.9 15 10.561 18.72 12.84c.361.181.54.78.241 1.2zm.12-3.36C15.24 8.4 8.82 8.16 5.16 9.301c-.6.179-1.2-.181-1.38-.721-.18-.601.18-1.2.72-1.381 4.26-1.26 11.28-1.02 15.721 1.621.539.3.719 1.02.419 1.56-.299.421-1.02.599-1.559.3z" />
-                      </svg>
-                    </div>
-                  )}
-                  {media.type === "substack" && (
-                    <div className="w-10 h-10 bg-[#FF6719] rounded flex items-center justify-center flex-shrink-0">
-                      <svg className="w-5 h-5 text-white" fill="currentColor" viewBox="0 0 24 24">
-                        <path d="M22.539 8.242H1.46V5.406h21.08v2.836zM1.46 10.812V24L12 18.11 22.54 24V10.812H1.46zM22.54 0H1.46v2.836h21.08V0z" />
-                      </svg>
-                    </div>
-                  )}
-                  {media.type === "letterboxd" && (
-                    <div className="w-10 h-10 bg-[#00e054] rounded flex items-center justify-center flex-shrink-0">
-                      <svg className="w-5 h-5 text-[#14181c]" fill="currentColor" viewBox="0 0 500 500">
-                        <path d="M250 0C111.93 0 0 111.93 0 250s111.93 250 250 250 250-111.93 250-250S388.07 0 250 0zm0 472.73C128.52 472.73 27.27 371.48 27.27 250S128.52 27.27 250 27.27 472.73 128.52 472.73 250 371.48 472.73 250 472.73z" />
-                        <circle cx="250" cy="250" r="110" />
-                      </svg>
-                    </div>
-                  )}
-                  {media.type === "link" && (
-                    <div className="w-10 h-10 bg-gray-500 rounded flex items-center justify-center flex-shrink-0">
-                      <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
-                      </svg>
-                    </div>
-                  )}
+                  <MediaTile type={media.type} />
                   <div className="flex-1 min-w-0">
                     <span className="text-black text-sm font-medium truncate block">
                       {media.label}
@@ -1441,19 +966,19 @@ function Home() {
                   </div>
                 </div>
               ))}
-              {CURATED_BUCKETS[selectedBucket].media.length === 0 && (
+              {curator.media.length === 0 && (
                 <p className="text-black/50 text-sm text-center py-4">No links yet</p>
               )}
-              {CURATED_BUCKETS[selectedBucket].media.length > 0 && (
+              {curator.media.length > 0 && (
                 <p className="text-black/50 text-xs text-center pt-4 italic">
                   Curated by{" "}
                   <a
-                    href={CURATED_BUCKETS[selectedBucket].link}
+                    href={curator.link}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="underline"
                   >
-                    {CURATED_BUCKETS[selectedBucket].name}
+                    {curator.name}
                   </a>
                 </p>
               )}
@@ -1481,11 +1006,12 @@ function Home() {
             </svg>
           </button>
         </div>
+        </>
       )}
 
       {/* Bottom toolbar - only show when editing */}
       {!isViewingShared && !shareUrl && (
-        <div className="fixed bottom-6 left-4 right-4 md:left-auto md:right-6 flex justify-between md:justify-start gap-3 z-40 md:flex-col md:w-40">
+        <div className="fixed bottom-[max(1.5rem,env(safe-area-inset-bottom))] left-4 right-4 md:left-auto md:right-6 flex justify-between md:justify-start gap-3 z-40 md:flex-col md:w-40">
           {/* Left column on mobile / Top on desktop: Flower toggle + colors */}
           <div className="flex flex-col gap-2 items-center justify-end md:justify-start">
             {/* Flower grid selector */}
@@ -1509,22 +1035,19 @@ function Home() {
 
             {/* Background color picker squares */}
             <div className="flex justify-center gap-2 md:gap-3 md:py-2">
-              {/* Pink square */}
-              <button
-                onClick={() => setBgColor("#F77196")}
-                className="w-8 h-8 md:w-10 md:h-10 rounded-lg bg-[#E6E6E6]/50 backdrop-blur-md hover:scale-110 transition-transform cursor-pointer flex items-center justify-center"
-                title="Pink background"
-              >
-                <div className="w-5 h-5 md:w-6 md:h-6 rounded bg-[#F77196]" />
-              </button>
-              {/* Red square */}
-              <button
-                onClick={() => setBgColor("#C2021B")}
-                className="w-8 h-8 md:w-10 md:h-10 rounded-lg bg-[#E6E6E6]/50 backdrop-blur-md hover:scale-110 transition-transform cursor-pointer flex items-center justify-center"
-                title="Red background"
-              >
-                <div className="w-5 h-5 md:w-6 md:h-6 rounded bg-[#C2021B]" />
-              </button>
+              {BG_PRESETS.map(({ color, title }) => (
+                <button
+                  key={color}
+                  onClick={() => setBgColor(color)}
+                  className="w-8 h-8 md:w-10 md:h-10 rounded-lg bg-[#E6E6E6]/50 backdrop-blur-md hover:scale-110 transition-transform cursor-pointer flex items-center justify-center"
+                  title={title}
+                >
+                  <div
+                    className="w-5 h-5 md:w-6 md:h-6 rounded"
+                    style={{ backgroundColor: color }}
+                  />
+                </button>
+              ))}
               {/* Custom color picker square */}
               <div className="relative w-8 h-8 md:w-10 md:h-10 rounded-lg bg-[#E6E6E6]/50 backdrop-blur-md hover:scale-110 transition-transform cursor-pointer flex items-center justify-center">
                 <input
@@ -1576,71 +1099,81 @@ function Home() {
           role="dialog"
           aria-modal="true"
           aria-labelledby="save-modal-title"
-          className="fixed inset-0 bg-black/10 backdrop-blur-md z-50 flex items-center justify-center p-4"
+          className="fixed inset-0 bg-black/10 backdrop-blur-md z-50 touch-none"
           onClick={() => setShowNoteModal(false)}
         >
+          {/* The card is placed within what the keyboard leaves visible, while
+              the backdrop above keeps covering the whole screen. On touch
+              screens the card sits at the top, so it is already clear of the
+              keyboard and stays put when a field is focused. */}
           <div
-            className="bg-white/50 backdrop-blur-xl p-6 rounded-2xl shadow-xl max-w-md w-full"
-            onClick={(e) => e.stopPropagation()}
+            ref={fitToVisualViewport}
+            className="absolute inset-x-0 top-0 h-full flex items-start pointer-fine:items-center justify-center p-4 pt-[max(1rem,env(safe-area-inset-top))]"
           >
-            <h2 id="save-modal-title" className="sr-only">
-              Add a note to your bouquet
-            </h2>
-            {/* From / To row */}
-            <div className="flex gap-3 mb-4">
-              <input
-                type="text"
-                value={fromName}
-                onChange={(e) => setFromName(e.target.value)}
-                placeholder="From"
-                className="flex-1 min-w-0 px-4 py-3 rounded-lg border-none bg-black/10 focus:outline-none font-normal"
-              />
-              <input
-                type="text"
-                value={toName}
-                onChange={(e) => setToName(e.target.value)}
-                placeholder="To"
-                className="flex-1 min-w-0 px-4 py-3 rounded-lg border-none bg-black/10 focus:outline-none font-normal"
-              />
-            </div>
-            <textarea
-              value={note}
-              onChange={(e) => setNote(e.target.value)}
-              placeholder="Happy Valentine's Day!\nI love you like the internet!"
-              className="w-full px-4 py-3 rounded-xl border-none focus:outline-none mb-4 resize-none h-36 bg-transparent"
-              autoFocus
-            />
-            <label className="flex items-center gap-3 mb-4 cursor-pointer group">
-              <div className="relative w-12 h-7 rounded-full bg-black/10 transition-colors duration-200 ease-in-out peer-focus:ring-2 peer-focus:ring-[#DB234F]/50"
-                style={{ backgroundColor: isGallery ? '#DB234F' : 'rgba(0,0,0,0.1)' }}>
-                <div
-                  className="absolute top-0.5 left-0.5 w-6 h-6 bg-white rounded-full shadow-md transition-transform duration-200 ease-in-out"
-                  style={{ transform: isGallery ? 'translateX(20px)' : 'translateX(0)' }}
+            <div
+              className="bg-white/50 backdrop-blur-xl p-5 sm:p-6 rounded-2xl shadow-xl max-w-md w-full max-h-full overflow-y-auto overscroll-contain touch-pan-y"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <h2 id="save-modal-title" className="sr-only">
+                Add a note to your bouquet
+              </h2>
+              {/* From / To row. Fields are 16px so iOS does not zoom the page
+                  when one is focused */}
+              <div className="flex gap-3 mb-4">
+                <input
+                  type="text"
+                  value={fromName}
+                  onChange={(e) => setFromName(e.target.value)}
+                  placeholder="From"
+                  className="flex-1 min-w-0 px-4 py-3 rounded-lg border-none bg-black/10 focus:outline-none font-normal text-base"
+                />
+                <input
+                  type="text"
+                  value={toName}
+                  onChange={(e) => setToName(e.target.value)}
+                  placeholder="To"
+                  className="flex-1 min-w-0 px-4 py-3 rounded-lg border-none bg-black/10 focus:outline-none font-normal text-base"
                 />
               </div>
-              <input
-                type="checkbox"
-                checked={isGallery}
-                onChange={(e) => setIsGallery(e.target.checked)}
-                className="sr-only peer"
+              <textarea
+                value={note}
+                onChange={(e) => setNote(e.target.value)}
+                placeholder={DEFAULT_NOTE}
+                className="w-full px-4 py-3 rounded-xl border-none focus:outline-none mb-4 resize-none h-36 bg-transparent text-base"
+                autoFocus
               />
-              <span className="text-black/70 text-sm">Show in gallery</span>
-            </label>
-            <div className="flex gap-3">
-              <button
-                type="button"
-                onClick={() => setShowNoteModal(false)}
-                className="flex-1 px-4 py-3 bg-[#E6E6E6]/50 backdrop-blur-md text-black rounded-lg transition-colors font-medium cursor-pointer"
-              >
-                Back
-              </button>
-              <button
-                onClick={handleSave}
-                disabled={isSaving}
-                className="flex-1 px-4 py-3 bg-[#DB234F] backdrop-blur-md text-white rounded-lg transition-colors font-medium disabled:opacity-50 cursor-pointer"
-              >
-                {isSaving ? "Saving..." : "Save & Share ⚘"}
-              </button>
+              <label className="flex items-center gap-3 mb-4 cursor-pointer group">
+                <div className="relative w-12 h-7 rounded-full bg-black/10 transition-colors duration-200 ease-in-out peer-focus:ring-2 peer-focus:ring-[#DB234F]/50"
+                  style={{ backgroundColor: isGallery ? '#DB234F' : 'rgba(0,0,0,0.1)' }}>
+                  <div
+                    className="absolute top-0.5 left-0.5 w-6 h-6 bg-white rounded-full shadow-md transition-transform duration-200 ease-in-out"
+                    style={{ transform: isGallery ? 'translateX(20px)' : 'translateX(0)' }}
+                  />
+                </div>
+                <input
+                  type="checkbox"
+                  checked={isGallery}
+                  onChange={(e) => setIsGallery(e.target.checked)}
+                  className="sr-only peer"
+                />
+                <span className="text-black/70 text-sm">Show in gallery</span>
+              </label>
+              <div className="flex gap-3">
+                <button
+                  type="button"
+                  onClick={() => setShowNoteModal(false)}
+                  className="flex-1 px-4 py-3 bg-[#E6E6E6]/50 backdrop-blur-md text-black rounded-lg transition-colors font-medium cursor-pointer"
+                >
+                  Back
+                </button>
+                <button
+                  onClick={handleSave}
+                  disabled={isSaving}
+                  className="flex-1 px-4 py-3 bg-[#DB234F] backdrop-blur-md text-white rounded-lg transition-colors font-medium disabled:opacity-50 cursor-pointer"
+                >
+                  {isSaving ? "Saving..." : "Save & Share ⚘"}
+                </button>
+              </div>
             </div>
           </div>
         </div>
@@ -1656,7 +1189,7 @@ function Home() {
           onClick={() => setShareUrl(null)}
         >
           <div
-            className="w-full max-w-md rounded-2xl bg-white/90 p-6 shadow-xl backdrop-blur-xl"
+            className="w-full max-w-md rounded-2xl bg-white/90 p-5 sm:p-6 shadow-xl backdrop-blur-xl max-h-[calc(100dvh-2rem)] overflow-y-auto"
             onClick={(event) => event.stopPropagation()}
           >
             <div className="mb-4 flex items-start justify-between gap-4">
@@ -1724,53 +1257,15 @@ function Home() {
 
       {/* URL Input Drawer (slides up from bottom) */}
       {showInput && (
-        <div
-          role="dialog"
-          aria-modal="true"
-          aria-labelledby="url-modal-title"
-          className="fixed inset-0 z-50 flex items-end justify-center"
-          onClick={() => setShowInput(false)}
-        >
-          <form
-            onSubmit={handleInputSubmit}
-            className="bg-white/80 backdrop-blur-xl p-6 rounded-t-2xl shadow-xl w-full max-w-lg animate-slide-up"
-            onClick={(e) => e.stopPropagation()}
-          >
-            {/* Drawer handle */}
-            <div className="flex justify-center mb-4">
-              <div className="w-12 h-1.5 bg-black/20 rounded-full" />
-            </div>
-            <h2 id="url-modal-title" className="sr-only">
-              Add a link
-            </h2>
-            <p className="text-black text-sm mb-4">
-              Paste a link here or use ⌘V anywhere on the canvas. Works with
-              YouTube, Spotify, TikTok, Substack & more.
-            </p>
-            <input
-              type="text"
-              name="url"
-              placeholder="https://..."
-              className="w-full px-4 py-3 rounded-xl border-none bg-black/10 focus:outline-none mb-4"
-              autoFocus
-            />
-            <div className="flex gap-3 pb-4">
-              <button
-                type="button"
-                onClick={() => setShowInput(false)}
-                className="flex-1 px-4 py-3 bg-[#E6E6E6]/50 backdrop-blur-md text-black rounded-lg transition-colors font-medium cursor-pointer"
-              >
-                Close
-              </button>
-              <button
-                type="submit"
-                className="flex-1 px-4 py-3 bg-[#DB234F] backdrop-blur-md text-white rounded-lg transition-colors font-medium cursor-pointer"
-              >
-                Add
-              </button>
-            </div>
-          </form>
-        </div>
+        <AddLinkDrawer
+          onAdd={(type, mediaId) => {
+            addItem(type, mediaId);
+            setShowInput(false);
+          }}
+          onSubmitUrl={handleUrlSubmit}
+          onError={showToast}
+          onClose={() => setShowInput(false)}
+        />
       )}
 
       {/* Toast notification */}
@@ -1778,7 +1273,7 @@ function Home() {
         <div
           role="alert"
           aria-live="polite"
-          className={`fixed top-20 left-1/2 -translate-x-1/2 z-50 px-6 py-3 rounded-xl shadow-lg backdrop-blur-md animate-fade-in ${
+          className={`fixed top-20 left-1/2 -translate-x-1/2 z-50 max-w-[calc(100vw-2rem)] text-center text-sm sm:text-base px-4 sm:px-6 py-3 rounded-xl shadow-lg backdrop-blur-md animate-fade-in ${
             toast.type === "error"
               ? "bg-red-500/90 text-white"
               : "bg-green-500/90 text-white"
@@ -1794,11 +1289,11 @@ function Home() {
           role="dialog"
           aria-modal="true"
           aria-label="Media viewer"
-          className="fixed inset-0 bg-black/10 backdrop-blur-md z-50 flex items-center justify-center p-4"
+          className="fixed inset-0 bg-black/10 backdrop-blur-md z-50 flex items-center justify-center p-4 pt-16"
           onClick={() => setShowModal(null)}
         >
           <div
-            className="relative bg-black rounded-2xl overflow-hidden"
+            className="relative bg-black rounded-2xl overflow-hidden max-w-[calc(100vw-2rem)] max-h-[calc(100dvh-5rem)]"
             onClick={(e) => e.stopPropagation()}
           >
             <button

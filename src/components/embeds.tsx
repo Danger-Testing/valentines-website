@@ -1,18 +1,44 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, type ReactNode } from "react";
+import type { MediaType } from "@/lib/supabase";
+import { LetterboxdIcon, LinkIcon, SubstackIcon } from "./icons";
 
-// Instagram embed component
-export function InstagramEmbed({
-  mediaId,
-  isModal,
-}: {
+type EmbedProps = {
   mediaId: string;
   isModal: boolean;
-}) {
+};
+
+// Thumbnail embeds open their link in a new tab when clicked on the canvas
+type LinkEmbedProps = EmbedProps & {
+  onLinkClick?: (e: React.MouseEvent) => void;
+};
+
+type LinkPreview = {
+  image?: string | null;
+  title?: string | null;
+  year?: string | null;
+  rating?: string | null;
+};
+
+// Fetches OG image/title (and film details for Letterboxd) for a URL
+function useLinkPreview(endpoint: "og" | "letterboxd", url: string) {
+  const [preview, setPreview] = useState<LinkPreview>({});
+
+  useEffect(() => {
+    fetch(`/api/${endpoint}?url=${encodeURIComponent(url)}`)
+      .then((res) => res.json())
+      .then(setPreview)
+      .catch(() => {});
+  }, [endpoint, url]);
+
+  return preview;
+}
+
+function InstagramEmbed({ mediaId, isModal }: EmbedProps) {
   if (isModal) {
     return (
-      <div className="w-[400px] h-[780px] overflow-hidden">
+      <div className="w-[min(400px,calc(100vw-2rem))] h-[min(780px,calc(100dvh-5rem))] overflow-hidden">
         <iframe
           src={`https://www.instagram.com/reel/${mediaId}/embed`}
           width="540"
@@ -38,26 +64,19 @@ export function InstagramEmbed({
   );
 }
 
-// YouTube embed component
-export function YouTubeEmbed({
-  mediaId,
-  isModal,
-}: {
-  mediaId: string;
-  isModal: boolean;
-}) {
+function YouTubeEmbed({ mediaId, isModal }: EmbedProps) {
   if (isModal) {
     return (
-      <iframe
-        src={`https://www.youtube.com/embed/${mediaId}?autoplay=1&playsinline=1`}
-        width="560"
-        height="315"
-        className="border-0"
-        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-        allowFullScreen
-        // @ts-expect-error - playsInline is valid for iframes on iOS
-        playsInline
-      />
+      <div className="w-[min(560px,calc(100vw-2rem))] aspect-video">
+        <iframe
+          src={`https://www.youtube.com/embed/${mediaId}?autoplay=1&playsinline=1`}
+          className="border-0 w-full h-full"
+          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+          allowFullScreen
+          // @ts-expect-error - playsInline is valid for iframes on iOS
+          playsInline
+        />
+      </div>
     );
   }
   return (
@@ -75,22 +94,15 @@ export function YouTubeEmbed({
   );
 }
 
-// Spotify embed component
-export function SpotifyEmbed({
-  mediaId,
-  isModal,
-}: {
-  mediaId: string;
-  isModal: boolean;
-}) {
+function SpotifyEmbed({ mediaId, isModal }: EmbedProps) {
   const embedUrl = `https://open.spotify.com/embed/${mediaId}?utm_source=generator&theme=0`;
 
   if (isModal) {
     return (
-      <div className="w-[400px] h-[152px] rounded-xl overflow-hidden shadow-lg">
+      <div className="w-[min(400px,calc(100vw-2rem))] h-[152px] rounded-xl overflow-hidden shadow-lg">
         <iframe
           src={embedUrl}
-          width="400"
+          width="100%"
           height="152"
           className="border-0"
           allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
@@ -113,22 +125,15 @@ export function SpotifyEmbed({
   );
 }
 
-// Twitter/X embed component
-export function TwitterEmbed({
-  mediaId,
-  isModal,
-}: {
-  mediaId: string;
-  isModal: boolean;
-}) {
+function TwitterEmbed({ mediaId, isModal }: EmbedProps) {
   const embedUrl = `https://platform.twitter.com/embed/Tweet.html?id=${mediaId}&dnt=true&hideCard=false&hideThread=true`;
 
   if (isModal) {
     return (
-      <div className="w-[550px] h-[320px] bg-white rounded-xl overflow-hidden shadow-lg">
+      <div className="w-[min(550px,calc(100vw-2rem))] h-[320px] bg-white rounded-xl overflow-hidden shadow-lg">
         <iframe
           src={embedUrl}
-          width="550"
+          width="100%"
           height="480"
           className="border-0"
           style={{ marginBottom: "-160px" }}
@@ -151,35 +156,63 @@ export function TwitterEmbed({
   );
 }
 
-// Substack thumbnail component that fetches OG image
-export function SubstackEmbed({
-  url,
-  isModal,
-  onLinkClick,
+// Canvas card shared by Substack and generic links: OG image with the title
+// overlaid, or an icon and title while there is no image
+function ThumbnailCard({
+  thumbnail,
+  title,
+  onClick,
+  overlayIcon,
+  fallbackIcon,
 }: {
-  url: string;
-  isModal: boolean;
-  onLinkClick?: (e: React.MouseEvent) => void;
+  thumbnail?: string | null;
+  title: string;
+  onClick?: (e: React.MouseEvent) => void;
+  overlayIcon?: ReactNode;
+  fallbackIcon: ReactNode;
 }) {
-  const [thumbnail, setThumbnail] = useState<string | null>(null);
-  const [title, setTitle] = useState<string>("");
+  return (
+    <div
+      onClick={onClick}
+      className="block w-[200px] h-[140px] rounded-xl overflow-hidden shadow-lg bg-white hover:shadow-xl transition-shadow cursor-pointer"
+    >
+      {thumbnail ? (
+        <div className="w-full h-full relative">
+          <img
+            src={thumbnail}
+            alt={title}
+            className="w-full h-full object-cover"
+          />
+          <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-2">
+            <div className="flex items-center gap-1">
+              {overlayIcon}
+              <span className="text-[10px] text-white font-medium truncate">
+                {title}
+              </span>
+            </div>
+          </div>
+        </div>
+      ) : (
+        <div className="w-full h-full bg-gradient-to-br from-gray-50 to-gray-100 border border-gray-200 p-3 flex flex-col justify-center items-center">
+          {fallbackIcon}
+          <span className="text-xs text-gray-600 font-medium text-center line-clamp-2">
+            {title}
+          </span>
+        </div>
+      )}
+    </div>
+  );
+}
 
-  useEffect(() => {
-    const slug = url.split("/p/")[1]?.replace(/\?.*$/, "");
-    setTitle(slug?.replace(/-/g, " ") || "Substack Article");
-
-    fetch(`/api/og?url=${encodeURIComponent(url)}`)
-      .then((res) => res.json())
-      .then((data) => {
-        if (data.image) setThumbnail(data.image);
-        if (data.title) setTitle(data.title);
-      })
-      .catch(() => {});
-  }, [url]);
+function SubstackEmbed({ mediaId: url, isModal, onLinkClick }: LinkEmbedProps) {
+  const preview = useLinkPreview("og", url);
+  const slug = url.split("/p/")[1]?.replace(/\?.*$/, "");
+  const title =
+    preview.title || slug?.replace(/-/g, " ") || "Substack Article";
 
   if (isModal) {
     return (
-      <div className="w-[600px] h-[80vh] bg-white rounded-xl overflow-hidden">
+      <div className="w-[min(600px,calc(100vw-2rem))] h-[min(80dvh,calc(100dvh-5rem))] bg-white rounded-xl overflow-hidden">
         <iframe
           src={`${url}?embedded=true`}
           width="100%"
@@ -192,81 +225,29 @@ export function SubstackEmbed({
   }
 
   return (
-    <div
+    <ThumbnailCard
+      thumbnail={preview.image}
+      title={title}
       onClick={onLinkClick}
-      className="block w-[200px] h-[140px] rounded-xl overflow-hidden shadow-lg bg-white hover:shadow-xl transition-shadow cursor-pointer"
-    >
-      {thumbnail ? (
-        <div className="w-full h-full relative">
-          <img
-            src={thumbnail}
-            alt={title}
-            className="w-full h-full object-cover"
-          />
-          <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-2">
-            <div className="flex items-center gap-1">
-              <svg
-                className="w-4 h-4 text-gray-400 flex-shrink-0"
-                fill="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path d="M22.539 8.242H1.46V5.406h21.08v2.836zM1.46 10.812V24L12 18.11 22.54 24V10.812H1.46zM22.54 0H1.46v2.836h21.08V0z" />
-              </svg>
-              <span className="text-[10px] text-white font-medium truncate">
-                {title}
-              </span>
-            </div>
-          </div>
-        </div>
-      ) : (
-        <div className="w-full h-full bg-gradient-to-br from-gray-50 to-gray-100 border border-gray-200 p-3 flex flex-col justify-center items-center">
-          <svg
-            className="w-10 h-10 text-gray-500 mb-2"
-            fill="currentColor"
-            viewBox="0 0 24 24"
-          >
-            <path d="M22.539 8.242H1.46V5.406h21.08v2.836zM1.46 10.812V24L12 18.11 22.54 24V10.812H1.46zM22.54 0H1.46v2.836h21.08V0z" />
-          </svg>
-          <span className="text-xs text-gray-600 font-medium text-center line-clamp-2">
-            {title}
-          </span>
-        </div>
-      )}
-    </div>
+      overlayIcon={
+        <SubstackIcon className="w-4 h-4 text-gray-400 flex-shrink-0" />
+      }
+      fallbackIcon={<SubstackIcon className="w-10 h-10 text-gray-500 mb-2" />}
+    />
   );
 }
 
-// Letterboxd thumbnail component that fetches movie poster
-export function LetterboxdEmbed({
-  url,
+function LetterboxdEmbed({
+  mediaId: url,
   isModal,
   onLinkClick,
-}: {
-  url: string;
-  isModal: boolean;
-  onLinkClick?: (e: React.MouseEvent) => void;
-}) {
-  const [poster, setPoster] = useState<string | null>(null);
-  const [title, setTitle] = useState<string>("");
-  const [year, setYear] = useState<string | null>(null);
-  const [rating, setRating] = useState<string | null>(null);
-
-  useEffect(() => {
-    const filmMatch = url.match(/letterboxd\.com\/film\/([a-zA-Z0-9-]+)/);
-    if (filmMatch) {
-      setTitle(filmMatch[1].replace(/-/g, " "));
-    }
-
-    fetch(`/api/letterboxd?url=${encodeURIComponent(url)}`)
-      .then((res) => res.json())
-      .then((data) => {
-        if (data.image) setPoster(data.image);
-        if (data.title) setTitle(data.title);
-        if (data.year) setYear(data.year);
-        if (data.rating) setRating(data.rating);
-      })
-      .catch(() => {});
-  }, [url]);
+}: LinkEmbedProps) {
+  const { image: poster, year, rating, ...preview } = useLinkPreview(
+    "letterboxd",
+    url,
+  );
+  const filmSlug = url.match(/letterboxd\.com\/film\/([a-zA-Z0-9-]+)/)?.[1];
+  const title = preview.title || filmSlug?.replace(/-/g, " ") || "";
 
   if (isModal) {
     return (
@@ -276,24 +257,17 @@ export function LetterboxdEmbed({
         rel="noopener noreferrer"
         className="block cursor-pointer"
       >
-        <div className="w-[300px] bg-[#14181c] rounded-xl overflow-hidden shadow-lg">
+        <div className="w-[min(300px,calc(100vw-2rem))] bg-[#14181c] rounded-xl overflow-hidden shadow-lg">
           {poster ? (
             <img
               src={poster}
               alt={title}
-              className="w-full h-[450px] object-cover"
+              className="w-full h-[min(450px,55dvh)] object-cover"
             />
           ) : (
-            <div className="w-full h-[450px] bg-[#2c3440] flex items-center justify-center">
+            <div className="w-full h-[min(450px,55dvh)] bg-[#2c3440] flex items-center justify-center">
               <div className="w-20 h-20 bg-[#00e054] rounded-full flex items-center justify-center">
-                <svg
-                  className="w-10 h-10 text-[#14181c]"
-                  fill="currentColor"
-                  viewBox="0 0 500 500"
-                >
-                  <path d="M250 0C111.93 0 0 111.93 0 250s111.93 250 250 250 250-111.93 250-250S388.07 0 250 0zm0 472.73C128.52 472.73 27.27 371.48 27.27 250S128.52 27.27 250 27.27 472.73 128.52 472.73 250 371.48 472.73 250 472.73z" />
-                  <circle cx="250" cy="250" r="110" />
-                </svg>
+                <LetterboxdIcon className="w-10 h-10 text-[#14181c]" />
               </div>
             </div>
           )}
@@ -317,10 +291,7 @@ export function LetterboxdEmbed({
   }
 
   return (
-    <div
-      onClick={onLinkClick}
-      className="block cursor-pointer"
-    >
+    <div onClick={onLinkClick} className="block cursor-pointer">
       <div className="w-[140px] h-[210px] bg-[#14181c] rounded-xl overflow-hidden shadow-lg">
         {poster ? (
           <div className="relative w-full h-full">
@@ -341,14 +312,7 @@ export function LetterboxdEmbed({
         ) : (
           <div className="w-full h-full flex flex-col items-center justify-center p-3">
             <div className="w-10 h-10 bg-[#00e054] rounded-full flex items-center justify-center mb-2">
-              <svg
-                className="w-5 h-5 text-[#14181c]"
-                fill="currentColor"
-                viewBox="0 0 500 500"
-              >
-                <path d="M250 0C111.93 0 0 111.93 0 250s111.93 250 250 250 250-111.93 250-250S388.07 0 250 0zm0 472.73C128.52 472.73 27.27 371.48 27.27 250S128.52 27.27 250 27.27 472.73 128.52 472.73 250 371.48 472.73 250 472.73z" />
-                <circle cx="250" cy="250" r="110" />
-              </svg>
+              <LetterboxdIcon className="w-5 h-5 text-[#14181c]" />
             </div>
             <span className="text-white text-xs font-medium text-center capitalize line-clamp-2">
               {title}
@@ -360,35 +324,18 @@ export function LetterboxdEmbed({
   );
 }
 
-// Generic link thumbnail component that fetches OG image
-export function LinkEmbed({
-  url,
-  isModal,
-  onLinkClick,
-}: {
-  url: string;
-  isModal: boolean;
-  onLinkClick?: (e: React.MouseEvent) => void;
-}) {
-  const [thumbnail, setThumbnail] = useState<string | null>(null);
-  const [title, setTitle] = useState<string>("");
+function hostnameOf(url: string) {
+  try {
+    return new URL(url).hostname.replace("www.", "");
+  } catch {
+    return "Link";
+  }
+}
 
-  useEffect(() => {
-    try {
-      const parsed = new URL(url);
-      setTitle(parsed.hostname.replace("www.", ""));
-    } catch {
-      setTitle("Link");
-    }
-
-    fetch(`/api/og?url=${encodeURIComponent(url)}`)
-      .then((res) => res.json())
-      .then((data) => {
-        if (data.image) setThumbnail(data.image);
-        if (data.title) setTitle(data.title);
-      })
-      .catch(() => {});
-  }, [url]);
+function LinkEmbed({ mediaId: url, isModal, onLinkClick }: LinkEmbedProps) {
+  const preview = useLinkPreview("og", url);
+  const thumbnail = preview.image;
+  const title = preview.title || hostnameOf(url);
 
   if (isModal) {
     return (
@@ -398,18 +345,22 @@ export function LinkEmbed({
         rel="noopener noreferrer"
         className="block cursor-pointer"
       >
-        <div className="w-[400px] bg-white rounded-xl overflow-hidden shadow-lg">
+        <div className="w-[min(400px,calc(100vw-2rem))] bg-white rounded-xl overflow-hidden shadow-lg">
           {thumbnail ? (
-            <img src={thumbnail} alt={title} className="w-full h-[250px] object-cover" />
+            <img
+              src={thumbnail}
+              alt={title}
+              className="w-full h-[min(250px,35dvh)] object-cover"
+            />
           ) : (
-            <div className="w-full h-[250px] bg-gradient-to-br from-gray-100 to-gray-200 flex items-center justify-center">
-              <svg className="w-16 h-16 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
-              </svg>
+            <div className="w-full h-[min(250px,35dvh)] bg-gradient-to-br from-gray-100 to-gray-200 flex items-center justify-center">
+              <LinkIcon className="w-16 h-16 text-gray-400" strokeWidth={1.5} />
             </div>
           )}
           <div className="p-4">
-            <h3 className="text-black font-medium text-lg line-clamp-2">{title}</h3>
+            <h3 className="text-black font-medium text-lg line-clamp-2">
+              {title}
+            </h3>
             <p className="text-gray-500 text-sm truncate">{url}</p>
           </div>
         </div>
@@ -418,33 +369,38 @@ export function LinkEmbed({
   }
 
   return (
-    <div
+    <ThumbnailCard
+      thumbnail={thumbnail}
+      title={title}
       onClick={onLinkClick}
-      className="block w-[200px] h-[140px] rounded-xl overflow-hidden shadow-lg bg-white hover:shadow-xl transition-shadow cursor-pointer"
-    >
-      {thumbnail ? (
-        <div className="w-full h-full relative">
-          <img
-            src={thumbnail}
-            alt={title}
-            className="w-full h-full object-cover"
-          />
-          <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-2">
-            <span className="text-[10px] text-white font-medium truncate block">
-              {title}
-            </span>
-          </div>
-        </div>
-      ) : (
-        <div className="w-full h-full bg-gradient-to-br from-gray-50 to-gray-100 border border-gray-200 p-3 flex flex-col justify-center items-center">
-          <svg className="w-10 h-10 text-gray-400 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
-          </svg>
-          <span className="text-xs text-gray-600 font-medium text-center line-clamp-2">
-            {title}
-          </span>
-        </div>
-      )}
-    </div>
+      fallbackIcon={
+        <LinkIcon className="w-10 h-10 text-gray-400 mb-2" strokeWidth={1.5} />
+      }
+    />
   );
+}
+
+// Renders the right embed for a media item, on the canvas or in the modal
+export function MediaEmbed({
+  type,
+  ...props
+}: LinkEmbedProps & { type: MediaType }) {
+  switch (type) {
+    case "instagram":
+      return <InstagramEmbed {...props} />;
+    case "youtube":
+      return <YouTubeEmbed {...props} />;
+    case "spotify":
+      return <SpotifyEmbed {...props} />;
+    case "twitter":
+      return <TwitterEmbed {...props} />;
+    case "substack":
+      return <SubstackEmbed {...props} />;
+    case "letterboxd":
+      return <LetterboxdEmbed {...props} />;
+    case "link":
+      return <LinkEmbed {...props} />;
+    default:
+      return null;
+  }
 }

@@ -4,15 +4,11 @@ const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || ''
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ''
 
 // Only create client if env vars are set (handles build time)
-let supabase: SupabaseClient | null = null
-if (supabaseUrl && supabaseAnonKey) {
-  supabase = createClient(supabaseUrl, supabaseAnonKey)
-}
+const supabase: SupabaseClient | null =
+  supabaseUrl && supabaseAnonKey ? createClient(supabaseUrl, supabaseAnonKey) : null
 
-// Types for bouquet data
-export interface Point {
-  x: number
-  y: number
+const NOT_CONFIGURED = {
+  error: 'Supabase not configured. Please set NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY.',
 }
 
 export type MediaType = 'instagram' | 'youtube' | 'spotify' | 'substack' | 'letterboxd' | 'twitter' | 'tiktok' | 'link'
@@ -29,17 +25,15 @@ export interface MediaItem {
 
 export interface BouquetData {
   image_url: string | null
-  paths: Point[][]
   items: MediaItem[]
-  note?: string | null
-  bg_color?: string | null
-  from_name?: string | null
-  to_name?: string | null
-  is_gallery?: boolean
+  note: string | null
+  bg_color: string | null
+  from_name: string | null
+  to_name: string | null
 }
 
 // Generate a short, readable slug for sharing using Latin flower names
-export function generateSlug(): string {
+function generateSlug(): string {
   const genus = ['rosa', 'tulipa', 'lilium', 'orchis', 'viola', 'dahlia', 'iris', 'peonia', 'camellia', 'magnolia', 'lotus', 'crocus', 'aster', 'salvia', 'primula']
   const species = ['alba', 'rubra', 'aurea', 'purpurea', 'elegans', 'flora', 'bella', 'serena', 'stellata', 'grandiflora', 'minor', 'major', 'verna', 'sylvestris', 'orientalis']
   const g = genus[Math.floor(Math.random() * genus.length)]
@@ -49,26 +43,15 @@ export function generateSlug(): string {
 }
 
 // Save a bouquet to Supabase
-export async function saveBouquet(data: BouquetData): Promise<{ slug: string } | { error: string }> {
-  if (!supabase) {
-    return { error: 'Supabase not configured. Please set NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY.' }
-  }
+export async function saveBouquet(
+  data: BouquetData & { is_gallery: boolean },
+): Promise<{ slug: string } | { error: string }> {
+  if (!supabase) return NOT_CONFIGURED
 
   const slug = generateSlug()
 
-  const { error } = await supabase
-    .from('bouquets')
-    .insert({
-      slug,
-      image_url: data.image_url,
-      paths: data.paths,
-      items: data.items,
-      note: data.note || null,
-      bg_color: data.bg_color || '#ffffff',
-      from_name: data.from_name || null,
-      to_name: data.to_name || null,
-      is_gallery: data.is_gallery || false,
-    })
+  // `paths` is a legacy column that is always written empty
+  const { error } = await supabase.from('bouquets').insert({ slug, paths: [], ...data })
 
   if (error) {
     // If slug collision, retry with new slug
@@ -83,13 +66,11 @@ export async function saveBouquet(data: BouquetData): Promise<{ slug: string } |
 
 // Load a bouquet by slug
 export async function loadBouquet(slug: string): Promise<BouquetData | { error: string }> {
-  if (!supabase) {
-    return { error: 'Supabase not configured. Please set NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY.' }
-  }
+  if (!supabase) return NOT_CONFIGURED
 
   const { data, error } = await supabase
     .from('bouquets')
-    .select('image_url, paths, items, note, bg_color, from_name, to_name')
+    .select('image_url, items, note, bg_color, from_name, to_name')
     .eq('slug', slug)
     .single()
 
@@ -97,15 +78,7 @@ export async function loadBouquet(slug: string): Promise<BouquetData | { error: 
     return { error: error.message }
   }
 
-  return {
-    image_url: data.image_url as string | null,
-    paths: data.paths as Point[][],
-    items: data.items as MediaItem[],
-    note: data.note as string | null,
-    bg_color: data.bg_color as string | null,
-    from_name: data.from_name as string | null,
-    to_name: data.to_name as string | null,
-  }
+  return data as BouquetData
 }
 
 // Public bouquet data for gallery
@@ -118,9 +91,7 @@ export interface PublicBouquet {
 
 // Load all public bouquets for gallery (only those with is_gallery = true)
 export async function loadAllBouquets(): Promise<PublicBouquet[] | { error: string }> {
-  if (!supabase) {
-    return { error: 'Supabase not configured. Please set NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY.' }
-  }
+  if (!supabase) return NOT_CONFIGURED
 
   const { data, error } = await supabase
     .from('bouquets')
@@ -132,10 +103,5 @@ export async function loadAllBouquets(): Promise<PublicBouquet[] | { error: stri
     return { error: error.message }
   }
 
-  return data.map(row => ({
-    slug: row.slug as string,
-    image_url: row.image_url as string | null,
-    items: (row.items || []) as MediaItem[],
-    created_at: row.created_at as string,
-  }))
+  return data.map(row => ({ ...row, items: row.items || [] }) as PublicBouquet)
 }

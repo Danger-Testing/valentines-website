@@ -1,8 +1,8 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
+import { ogTag } from '@/lib/og';
 
-export async function GET(request: Request) {
-  const { searchParams } = new URL(request.url);
-  const url = searchParams.get('url');
+export async function GET(request: NextRequest) {
+  const url = request.nextUrl.searchParams.get('url');
 
   if (!url) {
     return NextResponse.json({ error: 'URL required' }, { status: 400 });
@@ -21,33 +21,23 @@ export async function GET(request: Request) {
 
     const html = await response.text();
 
-    // Extract OG meta tags
-    const ogImage = html.match(/<meta property="og:image" content="([^"]+)"/)?.[1];
-    const ogTitle = html.match(/<meta property="og:title" content="([^"]+)"/)?.[1];
-    const ogDescription = html.match(/<meta property="og:description" content="([^"]+)"/)?.[1];
-
-    // Extract poster image (higher quality)
+    // Prefer the poster image (higher quality) over the OG image
     const posterMatch = html.match(/data-film-poster="([^"]+)"/);
-    const poster = posterMatch ? `https://a.ltrbxd.com/resized/${posterMatch[1]}` : ogImage;
-
-    // Check if it's a review/comment
-    const isReview = url.includes('/film/') && url.split('/').length > 5;
+    const image = posterMatch
+      ? `https://a.ltrbxd.com/resized/${posterMatch[1]}`
+      : ogTag(html, 'image');
 
     // Extract rating if present
     const ratingMatch = html.match(/rated it (\d(?:\.\d)?)/i) || html.match(/class="rating rating-(\d+)"/);
-    const rating = ratingMatch ? ratingMatch[1] : null;
 
     // Extract year
     const yearMatch = html.match(/\/films\/year\/(\d{4})\//);
-    const year = yearMatch ? yearMatch[1] : null;
 
     return NextResponse.json({
-      image: poster || ogImage,
-      title: ogTitle?.replace(' | Letterboxd', '').replace('&#x27;', "'") || 'Unknown',
-      description: ogDescription,
-      rating,
-      year,
-      isReview,
+      image,
+      title: ogTag(html, 'title')?.replace(' | Letterboxd', '').replace('&#x27;', "'") || 'Unknown',
+      rating: ratingMatch?.[1] ?? null,
+      year: yearMatch?.[1] ?? null,
     });
   } catch (error) {
     console.error('Letterboxd fetch error:', error);
