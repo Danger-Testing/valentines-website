@@ -4,14 +4,19 @@ import { useState, useRef, useCallback, useEffect, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
-import { Check, Copy, X } from "lucide-react";
+import { Check, Copy, X, Flower2, Plus, Sparkles } from "lucide-react";
 import {
   saveBouquet,
   loadBouquet,
   type MediaItem,
   type MediaType,
 } from "@/lib/supabase";
-import { readDraft, writeDraft, type BouquetDraft } from "@/lib/drafts";
+import {
+  DEFAULT_FLOWER_IMAGE,
+  readDraft,
+  writeDraft,
+  type BouquetDraft,
+} from "@/lib/drafts";
 import { useDialogViewport } from "@/lib/use-dialog-viewport";
 import { PointerDrag } from "@/lib/pointer-gestures";
 import {
@@ -23,6 +28,8 @@ import {
   LetterboxdEmbed,
   LinkEmbed,
 } from "@/components/embeds";
+import { AddLinkDrawer } from "@/components/AddLinkDrawer";
+import { createId } from "@/lib/utils";
 
 type AppdropOutputVisibility = "private" | "unlisted" | "public";
 
@@ -558,19 +565,13 @@ function Home() {
 
   const [items, setItems] = useState<MediaItem[]>([]);
   const [showInput, setShowInput] = useState(false);
-  const [inputError, setInputError] = useState<string | null>(null);
-  const inputScrollRef = useRef<HTMLDivElement>(null);
-  useEffect(() => {
-    // Keep validation beside the field visible in a short keyboard viewport.
-    if (inputError && inputScrollRef.current) {
-      inputScrollRef.current.scrollTop = inputScrollRef.current.scrollHeight;
-    }
-  }, [inputError]);
   const openLinkInput = () => {
-    setInputError(null);
+    setSidebarOpen(false);
+    setShowStyle(false);
     setShowInput(true);
   };
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [showStyle, setShowStyle] = useState(false);
   const [selectedBucket, setSelectedBucket] = useState(3);
   const [showModal, setShowModal] = useState<MediaItem | null>(null);
   const [dragging, setDragging] = useState<string | null>(null);
@@ -589,7 +590,8 @@ function Home() {
   const [isViewingShared, setIsViewingShared] = useState(
     Boolean(searchParams.get("b")) && searchParams.get("edit") !== "1",
   );
-  const [flowerImage, setFlowerImage] = useState<FlowerOption>("flowers");
+  const [flowerImage, setFlowerImage] =
+    useState<FlowerOption>(DEFAULT_FLOWER_IMAGE);
   const [bgColor, setBgColor] = useState("#ffffff");
   const [showNoteModal, setShowNoteModal] = useState(false);
   const [note, setNote] = useState(
@@ -702,7 +704,20 @@ function Home() {
     if (!shareUrl) return;
 
     try {
-      await navigator.clipboard.writeText(shareUrl);
+      if (navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(shareUrl);
+      } else {
+        const input = document.createElement("textarea");
+        input.value = shareUrl;
+        input.setAttribute("readonly", "");
+        input.style.position = "fixed";
+        input.style.opacity = "0";
+        document.body.appendChild(input);
+        input.select();
+        const copied = document.execCommand("copy");
+        document.body.removeChild(input);
+        if (!copied) throw new Error("Copy failed");
+      }
       setIsShareUrlCopied(true);
 
       if (copyResetTimeoutRef.current) {
@@ -842,7 +857,7 @@ function Home() {
   const addItem = (type: MediaType, mediaId: string) => {
     checkpoint();
     const newItem: MediaItem = {
-      id: crypto.randomUUID(),
+      id: createId(),
       type,
       mediaId,
       x: 30 + Math.random() * 40,
@@ -853,19 +868,12 @@ function Home() {
     setItems((prev) => [...prev, newItem]);
   };
 
-  const handleInputSubmit = (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    const formData = new FormData(e.currentTarget);
-    const url = formData.get("url") as string;
+  const handleUrlSubmit = (url: string): boolean => {
     const parsed = parseUrl(url);
-    if (parsed) {
-      e.currentTarget.querySelector("input")?.blur();
-      addItem(parsed.type, parsed.id);
-      setShowInput(false);
-    } else {
-      setInputError("Please enter a domain or link, like example.com");
-      e.currentTarget.querySelector("input")?.focus({ preventScroll: true });
-    }
+    if (!parsed) return false;
+    addItem(parsed.type, parsed.id);
+    setShowInput(false);
+    return true;
   };
 
   const itemDragRef = useRef<{
@@ -987,6 +995,8 @@ function Home() {
       if (
         isViewingShared ||
         showInput ||
+        showStyle ||
+        sidebarOpen ||
         showNoteModal ||
         shareUrl ||
         pendingDraft ||
@@ -1005,7 +1015,7 @@ function Home() {
       setItems((previous) => [
         ...previous,
         {
-          id: crypto.randomUUID(),
+          id: createId(),
           type: parsed.type,
           mediaId: parsed.id,
           x: 50,
@@ -1022,6 +1032,8 @@ function Home() {
         event.key.toLowerCase() === "z" &&
         !isViewingShared &&
         !showInput &&
+        !showStyle &&
+        !sidebarOpen &&
         !showNoteModal &&
         !shareUrl &&
         !pendingDraft &&
@@ -1041,6 +1053,8 @@ function Home() {
       }
       if (event.key !== "Escape" || isSaving || pendingDraft) return;
       setShowModal(null);
+      setShowStyle(false);
+      setSidebarOpen(false);
       setShowInput(false);
       setShowNoteModal(false);
       setShareUrl(null);
@@ -1054,6 +1068,8 @@ function Home() {
   }, [
     isViewingShared,
     showInput,
+    showStyle,
+    sidebarOpen,
     showModal,
     showNoteModal,
     shareUrl,
@@ -1067,6 +1083,8 @@ function Home() {
     Boolean(
       showModal ||
       showInput ||
+      showStyle ||
+      sidebarOpen ||
       showNoteModal ||
       shareUrl ||
       (pendingDraft && !isLoading),
@@ -1078,6 +1096,8 @@ function Home() {
     const isModalOpen =
       showModal ||
       showInput ||
+      showStyle ||
+      sidebarOpen ||
       showNoteModal ||
       shareUrl ||
       (pendingDraft && !isLoading);
@@ -1089,9 +1109,11 @@ function Home() {
       const modal = document.querySelector<HTMLElement>('[role="dialog"]');
       if (!modal) return;
 
-      const focusable = modal.querySelectorAll<HTMLElement>(
+      const focusable = Array.from(
+        modal.querySelectorAll<HTMLElement>(
         'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])',
-      );
+        ),
+      ).filter((element) => element.getClientRects().length > 0);
       const first = focusable[0];
       const last = focusable[focusable.length - 1];
 
@@ -1130,7 +1152,16 @@ function Home() {
       if (previouslyFocused?.isConnected)
         previouslyFocused.focus({ preventScroll: true });
     };
-  }, [showModal, showInput, showNoteModal, shareUrl, pendingDraft, isLoading]);
+  }, [
+    showModal,
+    showInput,
+    showStyle,
+    sidebarOpen,
+    showNoteModal,
+    shareUrl,
+    pendingDraft,
+    isLoading,
+  ]);
 
   const deleteItem = (id: string) => {
     checkpoint();
@@ -1227,7 +1258,7 @@ function Home() {
 
   return (
     <div
-      className="h-dvh min-h-0 relative overflow-hidden"
+      className={`bouquet-editor h-dvh min-h-0 relative overflow-hidden ${isViewingShared ? "bouquet-shared" : ""}`}
       style={{ backgroundColor: bgColor }}
       onMouseMove={handleMouseMove}
       onMouseUp={handleMouseUp}
@@ -1240,6 +1271,7 @@ function Home() {
             src="/5.png"
             alt="Flower background"
             fill
+            sizes="100vw"
             className="object-contain select-none"
             draggable={false}
             priority
@@ -1247,14 +1279,10 @@ function Home() {
         </div>
       )}
       {/* Canvas area - centered, always maintains 3:4 aspect ratio */}
-      <div className="absolute inset-0 flex items-center justify-center overflow-hidden p-4">
+      <div className="bouquet-stage absolute inset-0 flex items-center justify-center overflow-hidden p-4">
         <div
           ref={attachCanvas}
-          className="relative w-full max-w-[900px]"
-          style={{
-            aspectRatio: "3/4",
-            maxHeight: "calc(100dvh - 2rem)",
-          }}
+          className="bouquet-canvas relative shrink-0"
           onDragOver={(e) => e.preventDefault()}
           onDrop={(e) => {
             e.preventDefault();
@@ -1287,7 +1315,7 @@ function Home() {
               const x = ((e.clientX - rect.left) / rect.width) * 100;
               const y = ((e.clientY - rect.top) / rect.height) * 100;
               const newItem: MediaItem = {
-                id: crypto.randomUUID(),
+                id: createId(),
                 type,
                 mediaId,
                 x: Math.max(5, Math.min(95, x)),
@@ -1301,14 +1329,13 @@ function Home() {
         >
           {/* Flowers background */}
           {flowerImage !== "5" && (
-            <div
-              className={`absolute inset-x-[8%] md:inset-x-0 ${["1", "2", "3", "4", "6", "7"].includes(flowerImage) ? "-bottom-[2%] -top-[50%]" : "-bottom-[40%] -top-[10%]"}`}
-            >
+            <div className="absolute inset-0">
               <Image
                 src={`/${flowerImage}.png`}
                 alt="Flower bouquet"
                 fill
-                className={`${["1", "2", "3", "4", "6", "7"].includes(flowerImage) ? "object-contain object-bottom" : "object-contain"} select-none`}
+                sizes="(max-width: 768px) 100vw, min(900px, 75vh)"
+                className="object-contain select-none"
                 draggable={false}
                 priority
               />
@@ -1325,23 +1352,20 @@ function Home() {
 
           {/* Empty state prompt */}
           {!isViewingShared && items.length === 0 && (
-            <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-10">
-              <div className="bg-white/80 backdrop-blur-sm rounded-2xl px-8 py-6 text-left max-w-sm shadow-lg">
-                <p className="text-black/80 text-fluid-lg font-medium mb-3">
-                  Start curating your bouquet
+            <div className="bouquet-welcome absolute inset-0 flex items-center justify-center pointer-events-none z-10">
+              <div className="pointer-events-auto bg-white/90 backdrop-blur-md rounded-2xl px-6 py-5 text-center max-w-sm shadow-lg">
+                <p className="text-black/80 text-fluid-lg font-medium mb-2">
+                  A little bouquet of you
                 </p>
-                <p className="text-black/60 text-fluid-sm mb-3">
-                  Paste a link with{" "}
-                  <kbd className="px-1.5 py-0.5 bg-black/10 rounded text-xs font-mono">
-                    ⌘V
-                  </kbd>
-                  <br />
-                  or tap Add Link to begin.
+                <p className="text-black/60 text-sm leading-relaxed mb-4">
+                  A song, a film, something they’ll love.<br />
+                  Start with one link.
                 </p>
-                <p className="text-black/60 text-fluid-sm">
-                  When it&apos;s ready, click Save & Share
-                  <br />
-                  and surprise someone.
+                <button onClick={openLinkInput} className="min-h-11 rounded-xl bg-[#DB234F] px-5 py-3 text-sm font-medium text-white">
+                  Add your first link
+                </button>
+                <p className="hidden md:block text-black/50 text-xs mt-3">
+                  Or paste a link anywhere on the canvas.
                 </p>
               </div>
             </div>
@@ -1525,7 +1549,7 @@ function Home() {
       {/* Header */}
       <Link
         href="/"
-        className="fixed top-3 left-3 sm:top-4 sm:left-4 md:top-6 md:left-6 z-20 cursor-pointer"
+        className="bouquet-logo fixed top-3 left-3 sm:top-4 sm:left-4 md:top-6 md:left-6 z-20 cursor-pointer"
       >
         <Image
           src="/logo.png"
@@ -1556,7 +1580,7 @@ function Home() {
       </div>
 
       {/* Decorative turtle */}
-      <div className="fixed top-4 right-4 md:top-6 md:right-6 z-40">
+      <div className="bouquet-turtle fixed top-4 right-4 md:top-6 md:right-6 z-40">
         <Image
           src="/turtle.png"
           alt="Turtle"
@@ -1590,15 +1614,40 @@ function Home() {
         </div>
       )}
 
+      {(sidebarOpen || showStyle) && (
+        <button
+          type="button"
+          tabIndex={-1}
+          aria-label="Close panel"
+          className="fixed inset-0 z-[45] bg-black/20 backdrop-blur-sm"
+          onClick={() => { setSidebarOpen(false); setShowStyle(false); }}
+        />
+      )}
+
       {/* Left Sidebar with curated media */}
       {!isViewingShared && (
         <div
-          className={`fixed left-0 top-1/2 -translate-y-1/2 z-30 transition-transform duration-300 ${sidebarOpen ? "translate-x-0" : "-translate-x-[280px]"}`}
+          className={`curated-sidebar fixed left-0 top-1/2 transition-transform duration-300 ${sidebarOpen ? "is-open z-50" : "z-30"}`}
         >
           <div
             inert={!sidebarOpen}
-            className="w-[280px] bg-[#E6E6E6]/50 backdrop-blur-md rounded-r-2xl py-4 flex flex-col relative"
+            role={sidebarOpen ? "dialog" : undefined}
+            aria-modal={sidebarOpen || undefined}
+            aria-label="Curated links"
+            tabIndex={-1}
+            className="curated-panel w-[280px] bg-[#E6E6E6]/50 backdrop-blur-md rounded-r-2xl py-4 flex flex-col relative"
           >
+            <div className="flex items-center justify-between px-4 pb-3 shrink-0">
+              <div>
+                <h2 className="font-medium text-black">
+                  Inspiration from our friends.
+                </h2>
+                <p className="text-xs text-black/60">Tap a link to add it.</p>
+              </div>
+              <button onClick={() => setSidebarOpen(false)} aria-label="Close curated links" className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-black/5 text-black">
+                <X aria-hidden="true" className="h-5 w-5" />
+              </button>
+            </div>
             {/* Profile pictures rows */}
             <div className="px-4 pb-2">
               {/* First row */}
@@ -1607,7 +1656,8 @@ function Home() {
                   <button
                     key={i}
                     onClick={() => setSelectedBucket(i)}
-                    className={`rounded-full transition-all ${selectedBucket === i ? "scale-110" : "opacity-60 hover:opacity-100"}`}
+                    aria-pressed={selectedBucket === i}
+                    className={`min-h-11 min-w-11 flex items-center justify-center rounded-full transition-all ${selectedBucket === i ? "scale-110" : "opacity-60 hover:opacity-100"}`}
                   >
                     <Image
                       src={bucket.pfp}
@@ -1626,7 +1676,8 @@ function Home() {
                     <button
                       key={i + 5}
                       onClick={() => setSelectedBucket(i + 5)}
-                      className={`rounded-full transition-all ${selectedBucket === i + 5 ? "scale-110" : "opacity-60 hover:opacity-100"}`}
+                      aria-pressed={selectedBucket === i + 5}
+                      className={`min-h-11 min-w-11 flex items-center justify-center rounded-full transition-all ${selectedBucket === i + 5 ? "scale-110" : "opacity-60 hover:opacity-100"}`}
                     >
                       <Image
                         src={bucket.pfp}
@@ -1641,7 +1692,7 @@ function Home() {
               )}
             </div>
             {/* Media items for selected bucket */}
-            <div className="px-4 pt-2 flex flex-col space-y-2 max-h-[460px] overflow-y-auto">
+            <div className="curated-list min-h-0 px-4 pt-2 flex flex-col space-y-2 max-h-[460px] overflow-y-auto overscroll-contain">
               {CURATED_BUCKETS[selectedBucket].media.map((media, index) => (
                 <button
                   type="button"
@@ -1756,12 +1807,12 @@ function Home() {
           </div>
           {/* Toggle button */}
           <button
-            onClick={() => setSidebarOpen(!sidebarOpen)}
+            onClick={() => { setShowStyle(false); setSidebarOpen(!sidebarOpen); }}
             aria-label={
               sidebarOpen ? "Close curated links" : "Try a curated link"
             }
             aria-expanded={sidebarOpen}
-            className="absolute top-1/2 -translate-y-1/2 -right-10 w-10 h-20 bg-[#E6E6E6]/50 backdrop-blur-md rounded-r-lg flex items-center justify-center text-black/50 hover:text-black transition-colors focus-visible:ring-2 focus-visible:ring-black"
+            className="hidden md:flex absolute top-1/2 -translate-y-1/2 -right-10 w-10 h-20 bg-[#E6E6E6]/50 backdrop-blur-md rounded-r-lg flex items-center justify-center text-black/50 hover:text-black transition-colors focus-visible:ring-2 focus-visible:ring-black"
           >
             <svg
               className={`w-5 h-5 transition-transform ${sidebarOpen ? "" : "rotate-180"}`}
@@ -1782,17 +1833,40 @@ function Home() {
 
       {/* Bottom toolbar - only show when editing */}
       {!isViewingShared && !shareUrl && (
-        <div className="fixed bottom-6 left-4 right-4 md:left-auto md:right-6 flex justify-between md:justify-start gap-3 z-40 md:flex-col md:w-40">
-          {/* Left column on mobile / Top on desktop: Flower toggle + colors */}
-          <div className="flex flex-col gap-2 items-center justify-end md:justify-start">
+        <div className={`editor-toolbar fixed bottom-6 left-4 right-4 md:left-auto md:right-6 flex justify-between md:justify-start gap-3 md:flex-col md:w-40 ${showStyle ? "z-50" : "z-40"}`}>
+          <div className="mobile-tools flex items-center gap-2 md:hidden">
+            <button onClick={() => { setSidebarOpen(false); setShowStyle(!showStyle); }} aria-expanded={showStyle} aria-controls="bouquet-style" className="mobile-tool">
+              <Flower2 aria-hidden="true" className="h-4 w-4" /> Style
+            </button>
+            <button onClick={() => { setShowStyle(false); setSidebarOpen(true); }} aria-expanded={sidebarOpen} className="mobile-tool">
+              <Sparkles aria-hidden="true" className="h-4 w-4" /> Curated links
+            </button>
+            <span className="ml-auto text-xs text-black/55 whitespace-nowrap">{items.length} {items.length === 1 ? "link" : "links"}</span>
+          </div>
+          <div
+            id="bouquet-style"
+            role={showStyle ? "dialog" : undefined}
+            aria-modal={showStyle || undefined}
+            aria-label="Bouquet style"
+            tabIndex={-1}
+            className={`style-panel flex-col gap-3 items-center justify-end md:justify-start ${showStyle ? "is-open flex" : "hidden md:flex"}`}
+          >
+            {showStyle && (
+              <div className="flex w-full items-center justify-between text-black">
+                <h2 className="font-medium">Make it yours</h2>
+                <button onClick={() => setShowStyle(false)} aria-label="Close bouquet style" className="flex h-11 w-11 items-center justify-center rounded-full bg-black/5">
+                  <X aria-hidden="true" className="h-5 w-5" />
+                </button>
+              </div>
+            )}
             {/* Flower grid selector */}
-            <div className="grid grid-cols-3 gap-1.5 md:gap-2">
+            <div className="flower-options grid grid-cols-3 gap-2">
               {FLOWER_OPTIONS.map((option) => (
                 <button
                   key={option}
                   aria-pressed={flowerImage === option}
                   onClick={() => setFlowerImage(option)}
-                  className={`w-7 h-7 md:w-10 md:h-10 rounded-lg overflow-hidden cursor-pointer transition-all ${flowerImage === option ? "ring-2 ring-white scale-110" : "bg-[#E6E6E6]/50 backdrop-blur-md hover:scale-110"}`}
+                  className={`flower-option w-12 h-12 md:w-10 md:h-10 rounded-lg overflow-hidden cursor-pointer transition-all ${flowerImage === option ? "ring-2 ring-[#DB234F] bg-white scale-105" : "bg-[#E6E6E6]/50 backdrop-blur-md hover:scale-110"}`}
                 >
                   <Image
                     src={`/${option}.png`}
@@ -1810,7 +1884,9 @@ function Home() {
               {/* Pink square */}
               <button
                 onClick={() => setBgColor("#F77196")}
-                className="w-8 h-8 md:w-10 md:h-10 rounded-lg bg-[#E6E6E6]/50 backdrop-blur-md hover:scale-110 transition-transform cursor-pointer flex items-center justify-center"
+                className="w-11 h-11 md:w-10 md:h-10 rounded-lg bg-[#E6E6E6]/50 backdrop-blur-md hover:scale-110 transition-transform cursor-pointer flex items-center justify-center"
+                aria-label="Pink background"
+                aria-pressed={bgColor === "#F77196"}
                 title="Pink background"
               >
                 <div className="w-5 h-5 md:w-6 md:h-6 rounded bg-[#F77196]" />
@@ -1818,18 +1894,21 @@ function Home() {
               {/* Red square */}
               <button
                 onClick={() => setBgColor("#C2021B")}
-                className="w-8 h-8 md:w-10 md:h-10 rounded-lg bg-[#E6E6E6]/50 backdrop-blur-md hover:scale-110 transition-transform cursor-pointer flex items-center justify-center"
+                className="w-11 h-11 md:w-10 md:h-10 rounded-lg bg-[#E6E6E6]/50 backdrop-blur-md hover:scale-110 transition-transform cursor-pointer flex items-center justify-center"
+                aria-label="Red background"
+                aria-pressed={bgColor === "#C2021B"}
                 title="Red background"
               >
                 <div className="w-5 h-5 md:w-6 md:h-6 rounded bg-[#C2021B]" />
               </button>
               {/* Custom color picker square */}
-              <div className="relative w-8 h-8 md:w-10 md:h-10 rounded-lg bg-[#E6E6E6]/50 backdrop-blur-md hover:scale-110 transition-transform cursor-pointer flex items-center justify-center">
+              <div className="relative w-11 h-11 md:w-10 md:h-10 rounded-lg bg-[#E6E6E6]/50 backdrop-blur-md hover:scale-110 transition-transform cursor-pointer flex items-center justify-center">
                 <input
                   type="color"
                   value={bgColor}
                   onChange={(e) => setBgColor(e.target.value)}
                   className="absolute inset-0 w-full h-full rounded-lg cursor-pointer opacity-0"
+                  aria-label="Custom background color"
                   title="Custom color"
                 />
                 <div
@@ -1843,20 +1922,22 @@ function Home() {
           </div>
 
           {/* Right column on mobile / Bottom on desktop: Add Link + Save & Share */}
-          <div className="flex flex-col gap-2 md:gap-3 w-28 md:w-full md:flex-none justify-end md:justify-start">
+          <div className="editor-actions flex gap-2 md:flex-col md:gap-3 w-full md:flex-none justify-end md:justify-start">
             {/* Add link button */}
             <button
               onClick={openLinkInput}
               aria-label="Add a link to your bouquet"
               className="h-12 w-full rounded-lg bg-[#E6E6E6]/50 backdrop-blur-md transition-all flex items-center justify-center text-black cursor-pointer focus:outline-none focus:ring-2 focus:ring-black/30"
             >
-              <span className="font-medium text-sm md:text-base">Add Link</span>
+              <Plus aria-hidden="true" className="h-4 w-4 mr-2" /><span className="font-medium text-sm md:text-base">Add Link</span>
             </button>
 
             {/* Save button */}
             <button
               onClick={() => {
                 setSaveError(null);
+                setShowStyle(false);
+                setSidebarOpen(false);
                 setShowNoteModal(true);
               }}
               disabled={items.length === 0}
@@ -2129,79 +2210,15 @@ function Home() {
 
       {/* URL Input Drawer (slides up from bottom) */}
       {showInput && (
-        <div
-          role="dialog"
-          tabIndex={-1}
-          aria-modal="true"
-          aria-labelledby="url-modal-title"
-          className="dialog-viewport dialog-drawer fixed inset-0 z-50 flex items-end justify-center bg-black/10"
-          onClick={() => setShowInput(false)}
-        >
-          <form
-            onSubmit={handleInputSubmit}
-            className="dialog-panel flex flex-col bg-white/80 backdrop-blur-xl rounded-t-2xl shadow-xl w-full max-w-lg"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div
-              ref={inputScrollRef}
-              className="dialog-scroll min-h-0 overflow-y-auto overscroll-contain px-6 pt-6"
-            >
-              {/* Drawer handle */}
-              <div className="flex justify-center mb-4">
-                <div className="w-12 h-1.5 bg-black/20 rounded-full" />
-              </div>
-              <h2 id="url-modal-title" className="sr-only">
-                Add a link
-              </h2>
-              <p className="text-black text-sm mb-4">
-                Enter a domain or paste a link here. You can also paste directly
-                onto the canvas. Works with YouTube, Spotify, TikTok, Substack &
-                more.
-              </p>
-              <input
-                type="text"
-                name="url"
-                inputMode="url"
-                enterKeyHint="done"
-                autoCapitalize="none"
-                autoCorrect="off"
-                spellCheck={false}
-                autoComplete="off"
-                aria-label="Domain or link"
-                aria-invalid={Boolean(inputError)}
-                aria-describedby={inputError ? "link-input-error" : undefined}
-                onChange={() => setInputError(null)}
-                placeholder="example.com or any link"
-                className="w-full px-4 py-3 rounded-xl border-none bg-black/10 focus:outline-none mb-4"
-                autoFocus
-              />
-              {inputError && (
-                <p
-                  id="link-input-error"
-                  role="alert"
-                  className="mb-4 text-sm text-red-800"
-                >
-                  {inputError}
-                </p>
-              )}
-            </div>
-            <div className="dialog-actions flex shrink-0 gap-3 px-6 pt-2 pb-6">
-              <button
-                type="button"
-                onClick={() => setShowInput(false)}
-                className="flex-1 px-4 py-3 bg-[#E6E6E6]/50 backdrop-blur-md text-black rounded-lg transition-colors font-medium cursor-pointer"
-              >
-                Close
-              </button>
-              <button
-                type="submit"
-                className="flex-1 px-4 py-3 bg-[#DB234F] backdrop-blur-md text-white rounded-lg transition-colors font-medium cursor-pointer"
-              >
-                Add
-              </button>
-            </div>
-          </form>
-        </div>
+        <AddLinkDrawer
+          onAdd={(type, mediaId) => {
+            addItem(type, mediaId);
+            setShowInput(false);
+          }}
+          onSubmitUrl={handleUrlSubmit}
+          onError={showToast}
+          onClose={() => setShowInput(false)}
+        />
       )}
 
       {/* Toast notification */}
@@ -2209,7 +2226,7 @@ function Home() {
         <div
           role="alert"
           aria-live="polite"
-          className={`fixed top-20 left-1/2 -translate-x-1/2 z-50 px-6 py-3 rounded-xl shadow-lg backdrop-blur-md animate-fade-in ${
+          className={`max-w-[calc(100vw-2rem)] w-max text-center break-words fixed top-20 left-1/2 -translate-x-1/2 z-50 px-6 py-3 rounded-xl shadow-lg backdrop-blur-md animate-fade-in ${
             toast.type === "error"
               ? "bg-red-500/90 text-white"
               : "bg-green-500/90 text-white"

@@ -11,6 +11,9 @@ export interface BouquetDraft {
   isGallery: boolean;
 }
 
+/** The artwork a new bouquet starts with. */
+export const DEFAULT_FLOWER_IMAGE = "flowers";
+
 export function validDraft(value: unknown): value is BouquetDraft {
   if (!value || typeof value !== "object") return false;
   const draft = value as BouquetDraft;
@@ -67,7 +70,7 @@ export function writeDraft(key: string, draft: BouquetDraft): boolean {
       !draft.fromName &&
       !draft.toName &&
       draft.note === "Happy Valentine's Day!\nI love you like the internet!" &&
-      draft.flowerImage === "flowers" &&
+      draft.flowerImage === DEFAULT_FLOWER_IMAGE &&
       draft.bgColor === "#ffffff"
     )
       localStorage.removeItem(key);

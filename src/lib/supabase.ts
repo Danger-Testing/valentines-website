@@ -1,3 +1,4 @@
+import { createId } from "./utils";
 import { createClient, SupabaseClient } from "@supabase/supabase-js";
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || "";
@@ -84,7 +85,7 @@ export function generateSlug(): string {
   ];
   const g = genus[Math.floor(Math.random() * genus.length)];
   const s = species[Math.floor(Math.random() * species.length)];
-  const num = crypto.randomUUID().replaceAll("-", "");
+  const num = createId().replaceAll("-", "");
   return `${g}-${s}-${num}`;
 }
 
