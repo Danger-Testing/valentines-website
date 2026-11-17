@@ -181,7 +181,7 @@ function ThumbnailCard({
           <img
             src={thumbnail}
             alt={title}
-            className="w-full h-full object-cover"
+            className="w-full h-full object-cover pointer-events-none"
           />
           <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-2">
             <div className="flex items-center gap-1">

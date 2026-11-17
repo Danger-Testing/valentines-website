@@ -5,7 +5,6 @@ import type { MediaType } from "@/lib/supabase";
 import type { SearchResult, SearchSource } from "@/lib/search";
 import { fitToVisualViewport } from "@/lib/viewport";
 import {
-  InstagramIcon,
   LetterboxdIcon,
   SpotifyIcon,
   XIcon,
@@ -13,7 +12,7 @@ import {
 } from "./icons";
 
 type Source = {
-  id: SearchSource | "instagram" | "twitter";
+  id: SearchSource | "twitter";
   label: string;
   placeholder: string;
   bg: string;
@@ -36,15 +35,6 @@ const SOURCES: Source[] = [
     placeholder: "Search videos on YouTube",
     bg: "bg-[#FF0000]",
     icon: <YouTubeIcon className="w-5 h-5 text-white" />,
-  },
-  {
-    id: "instagram",
-    label: "Instagram",
-    placeholder: "Search Instagram",
-    bg: "bg-gradient-to-tr from-[#FEDA75] via-[#D62976] to-[#4F5BD5]",
-    icon: <InstagramIcon className="w-5 h-5 text-white" />,
-    externalUrl: (query) =>
-      `https://www.instagram.com/explore/search/keyword/?q=${encodeURIComponent(query)}`,
   },
   {
     id: "twitter",

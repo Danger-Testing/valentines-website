@@ -246,6 +246,14 @@ function createId() {
   );
 }
 
+// Lets a finger drag an item on the canvas. Without these the browser claims
+// the gesture for itself: a scroll or pull-to-refresh, a text selection, or
+// the long-press menu on images. On touch screens the grab area also reaches
+// past the item's edges, because items are drawn small on phones and a near
+// miss lands on the flower, which opens the add-link sheet.
+const TOUCH_DRAG =
+  "touch-none select-none [-webkit-touch-callout:none] pointer-coarse:before:absolute pointer-coarse:before:-inset-8";
+
 // Item positions are percentages of the canvas; keep centers inside it
 const clampPercent = (value: number) => Math.max(5, Math.min(95, value));
 
@@ -686,6 +694,7 @@ function Home() {
         }
       }}
       onTouchEnd={stopInteraction}
+      onTouchCancel={stopInteraction}
     >
       {/* Full page background for 5.png */}
       {flowerImage === "5" && (
@@ -773,11 +782,13 @@ function Home() {
             <div
               key={item.id}
               className={`absolute transition-shadow ${
-                !isViewingShared && dragging === item.id
-                  ? "cursor-grabbing z-30"
-                  : !isViewingShared
-                    ? "cursor-grab z-20 hover:z-30"
-                    : "z-20"
+                isViewingShared
+                  ? "z-20"
+                  : `${TOUCH_DRAG} ${
+                      dragging === item.id
+                        ? "cursor-grabbing z-30"
+                        : "cursor-grab z-20 hover:z-30"
+                    }`
               }`}
               style={{
                 left: `${item.x}%`,
@@ -870,7 +881,7 @@ function Home() {
       </div>
 
       {/* Decorative turtle */}
-      <div className="fixed top-4 right-4 md:top-6 md:right-6 z-40">
+      <div className="pointer-events-none fixed top-4 right-4 md:top-6 md:right-6 z-40">
         <Image
           src="/turtle.png"
           alt="Turtle"
@@ -1011,9 +1022,11 @@ function Home() {
 
       {/* Bottom toolbar - only show when editing */}
       {!isViewingShared && !shareUrl && (
-        <div className="fixed bottom-[max(1.5rem,env(safe-area-inset-bottom))] left-4 right-4 md:left-auto md:right-6 flex justify-between md:justify-start gap-3 z-40 md:flex-col md:w-40">
+        // The bar spans the screen on phones; only its two groups take touches,
+        // so items lying in the gap between them can still be grabbed
+        <div className="pointer-events-none fixed bottom-[max(1.5rem,env(safe-area-inset-bottom))] left-4 right-4 md:left-auto md:right-6 flex justify-between md:justify-start gap-3 z-40 md:flex-col md:w-40">
           {/* Left column on mobile / Top on desktop: Flower toggle + colors */}
-          <div className="flex flex-col gap-2 items-center justify-end md:justify-start">
+          <div className="pointer-events-auto flex flex-col gap-2 items-center justify-end md:justify-start">
             {/* Flower grid selector */}
             <div className="grid grid-cols-3 gap-1.5 md:gap-2">
               {FLOWER_OPTIONS.map((option) => (
@@ -1068,7 +1081,7 @@ function Home() {
           </div>
 
           {/* Right column on mobile / Bottom on desktop: Add Link + Save & Share */}
-          <div className="flex flex-col gap-2 md:gap-3 w-28 md:w-full md:flex-none justify-end md:justify-start">
+          <div className="pointer-events-auto flex flex-col gap-2 md:gap-3 w-28 md:w-full md:flex-none justify-end md:justify-start">
             {/* Add link button */}
             <button
               onClick={() => setShowInput(true)}
