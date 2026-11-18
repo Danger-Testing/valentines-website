@@ -48,6 +48,11 @@ describe("Appdrop output handoff", () => {
     expect(layout).toContain('strategy="beforeInteractive"');
   });
 
+  test("leaves top-level analytics to the Appdrop parent", () => {
+    expect(layout).not.toContain('@vercel/analytics/next');
+    expect(layout).not.toContain('<Analytics />');
+  });
+
   test("keeps the copy sheet alongside Appdrop's chat handoff", () => {
     expect(source).toContain("Saved and ready to share in chat");
     expect(source).toContain("await navigator.clipboard.writeText(shareUrl);");
